@@ -1,4 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 interface User {
   uid: string;
@@ -22,42 +31,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session in localStorage
-    const storedUser = localStorage.getItem('scholarstream_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    // Listen to Firebase auth state changes
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    // Mock sign up - in production, this would call Firebase
-    const newUser: User = {
-      uid: Math.random().toString(36).substring(7),
-      email,
-    };
-    setUser(newUser);
-    localStorage.setItem('scholarstream_user', JSON.stringify(newUser));
-    localStorage.removeItem('scholarstream_onboarding'); // Clear any previous onboarding
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const { uid, email: userEmail } = userCredential.user;
+      
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', uid), {
+        uid,
+        email: userEmail,
+        created_at: new Date(),
+        onboarding_completed: false,
+        profile: null,
+      });
+      
+      localStorage.removeItem('scholarstream_onboarding_complete');
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    // Mock sign in - in production, this would call Firebase
-    // For demo, we'll check if user exists
-    if (password.length < 6) {
-      throw new Error('Invalid credentials');
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      throw new Error(error.message);
     }
-    const existingUser: User = {
-      uid: Math.random().toString(36).substring(7),
-      email,
-    };
-    setUser(existingUser);
-    localStorage.setItem('scholarstream_user', JSON.stringify(existingUser));
   };
 
   const signOut = async () => {
-    setUser(null);
-    localStorage.removeItem('scholarstream_user');
+    try {
+      await firebaseSignOut(auth);
+      localStorage.removeItem('scholarstream_onboarding_complete');
+    } catch (error: any) {
+      throw new Error(error.message);
+    }
   };
 
   const isOnboardingComplete = () => {

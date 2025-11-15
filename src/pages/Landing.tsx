@@ -130,57 +130,53 @@ const Landing = () => {
       </section>
 
       {/* Problem/Solution */}
-      <section className="py-24 px-4 bg-card/30">
+      <section className="py-24 px-4 bg-background">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
-            <Card className="p-8 border-destructive/50 bg-destructive/5">
-              <h3 className="text-2xl font-semibold mb-6 text-destructive">The Problem</h3>
-              <div className="space-y-4 text-muted-foreground">
-                <p className="font-semibold text-foreground">Students miss out on $2.9B yearly</p>
-                <ul className="space-y-3">
-                  <li className="flex gap-3">
-                    <span className="text-destructive mt-1">•</span>
-                    <span>Deadlines scattered across 10,000+ websites</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="text-destructive mt-1">•</span>
-                    <span>No idea which scholarships you qualify for</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="text-destructive mt-1">•</span>
-                    <span>Application fatigue from irrelevant opportunities</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="text-destructive mt-1">•</span>
-                    <span>No reminders until it's too late</span>
-                  </li>
-                </ul>
-              </div>
+            <Card className="p-8 border-destructive bg-destructive/5">
+              <h3 className="text-2xl font-bold mb-4 text-destructive">The Problem</h3>
+              <p className="text-lg mb-6 text-foreground font-semibold">Students miss out on $2.9B yearly</p>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="text-destructive mt-1 text-xl">•</span>
+                  <span className="text-foreground">Deadlines scattered across 10,000+ websites</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-destructive mt-1 text-xl">•</span>
+                  <span className="text-foreground">No idea which scholarships you qualify for</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-destructive mt-1 text-xl">•</span>
+                  <span className="text-foreground">Application fatigue from irrelevant opportunities</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-destructive mt-1 text-xl">•</span>
+                  <span className="text-foreground">No reminders until it's too late</span>
+                </li>
+              </ul>
             </Card>
 
-            <Card className="p-8 border-success/50 bg-success/5">
-              <h3 className="text-2xl font-semibold mb-6 text-success">Our Solution</h3>
-              <div className="space-y-4 text-muted-foreground">
-                <p className="font-semibold text-foreground">ScholarStream solves all of this</p>
-                <ul className="space-y-3">
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                    <span>AI matches you with perfect-fit scholarships</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                    <span>Never miss a deadline with smart reminders</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                    <span>Application co-pilot with essay assistance</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                    <span>Track everything in one beautiful dashboard</span>
-                  </li>
-                </ul>
-              </div>
+            <Card className="p-8 border-success bg-success/5">
+              <h3 className="text-2xl font-bold mb-4 text-success">Our Solution</h3>
+              <p className="text-lg mb-6 text-foreground font-semibold">ScholarStream solves all of this</p>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success mt-1 flex-shrink-0" />
+                  <span className="text-foreground">AI matches you with perfect-fit scholarships</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success mt-1 flex-shrink-0" />
+                  <span className="text-foreground">Never miss a deadline with smart reminders</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success mt-1 flex-shrink-0" />
+                  <span className="text-foreground">Application co-pilot with essay assistance</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success mt-1 flex-shrink-0" />
+                  <span className="text-foreground">Track everything in one beautiful dashboard</span>
+                </li>
+              </ul>
             </Card>
           </div>
         </div>
