@@ -24,6 +24,9 @@ requests==2.32.3
 # Upstash Redis (Serverless Redis via HTTP)
 upstash-redis==0.15.0
 
+# Cloudinary (File Storage)
+cloudinary==1.41.0
+
 # Data Processing
 python-dateutil==2.9.0
 pytz==2024.2
