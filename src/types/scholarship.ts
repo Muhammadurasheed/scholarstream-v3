@@ -1,10 +1,10 @@
 // Scholarship Type Definitions for ScholarStream
 
-export type DeadlineType = 'rolling' | 'fixed';
-export type MatchTier = 'Excellent' | 'Good' | 'Fair' | 'Poor';
-export type PriorityLevel = 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type DeadlineType = 'rolling' | 'fixed' | 'ongoing';
+export type MatchTier = 'excellent' | 'great' | 'good' | 'potential';
+export type PriorityLevel = 'urgent' | 'high' | 'medium' | 'low';
 export type CompetitionLevel = 'Low' | 'Medium' | 'High';
-export type SourceType = 'scraped' | 'ai_discovered' | 'curated';
+export type SourceType = 'platform' | 'devpost' | 'gitcoin' | 'kaggle' | 'mlh' | 'government' | 'scholarships_com' | 'ai_discovered' | 'curated';
 
 export interface ScholarshipEligibility {
   gpa_min: number | null;

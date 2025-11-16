@@ -146,6 +146,11 @@ async def startup_event():
         environment=settings.environment,
         debug=settings.debug
     )
+    
+    # Start background job scheduler
+    from app.services.background_jobs import start_scheduler
+    start_scheduler()
+    logger.info("Background jobs initialized")
 
 
 # Shutdown event
@@ -153,6 +158,10 @@ async def startup_event():
 async def shutdown_event():
     """Cleanup on shutdown"""
     logger.info("Shutting down ScholarStream API")
+    
+    # Stop background jobs
+    from app.services.background_jobs import stop_scheduler
+    stop_scheduler()
     
     # Close scraper HTTP client
     from app.services.scraper_service import scraper_service
