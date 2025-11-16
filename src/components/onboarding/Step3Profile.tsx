@@ -43,15 +43,15 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
 
   return (
     <div className="space-y-8 animate-slide-up">
-      <div className="text-center space-y-2">
-        <p className="text-sm text-primary font-medium">Question 3 of 6</p>
-        <h1 className="text-4xl md:text-5xl font-bold">
+      <div className="text-center space-y-3">
+        <p className="text-sm text-primary font-semibold">Question 3 of 6</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Tell us about your academic performance
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           This helps us match you with merit-based opportunities
         </p>
-        <p className="text-sm text-warning">
+        <p className="text-sm font-medium text-warning">
           All fields are optional - you can update these later
         </p>
       </div>
@@ -60,7 +60,7 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
         {/* GPA Slider */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label>GPA (4.0 scale)</Label>
+            <Label className="text-foreground font-semibold">GPA (4.0 scale)</Label>
             <span className="text-2xl font-bold text-primary">
               {gpa.toFixed(1)} ({getLetterGrade(gpa)})
             </span>
@@ -73,21 +73,21 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
             step={0.1}
             className="w-full"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Don't worry if you're not sure - you can update this later
           </p>
         </div>
 
         {/* Major */}
         <div className="space-y-2">
-          <Label>Major / Intended Major</Label>
+          <Label className="text-foreground font-semibold">Major / Intended Major</Label>
           <Select value={major} onValueChange={setMajor}>
-            <SelectTrigger>
+            <SelectTrigger className="bg-background text-foreground border-2">
               <SelectValue placeholder="Select your major" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover border-2">
               {majors.map((m) => (
-                <SelectItem key={m} value={m}>
+                <SelectItem key={m} value={m} className="text-foreground">
                   {m}
                 </SelectItem>
               ))}
@@ -97,14 +97,14 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
 
         {/* Graduation Year */}
         <div className="space-y-2">
-          <Label>Expected Graduation Year</Label>
+          <Label className="text-foreground font-semibold">Expected Graduation Year</Label>
           <Select value={graduationYear} onValueChange={setGraduationYear}>
-            <SelectTrigger>
+            <SelectTrigger className="bg-background text-foreground border-2">
               <SelectValue placeholder="Select year" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover border-2">
               {[2025, 2026, 2027, 2028, 2029, 2030, 2031].map((year) => (
-                <SelectItem key={year} value={year.toString()}>
+                <SelectItem key={year} value={year.toString()} className="text-foreground">
                   {year}
                 </SelectItem>
               ))}

@@ -65,12 +65,12 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
 
   return (
     <div className="space-y-8 animate-slide-up">
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-3">
         <p className="text-sm text-primary font-semibold">Question 5 of 6</p>
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
           Let's understand your financial needs and interests
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           This helps us find the perfect scholarships for you
         </p>
       </div>
@@ -78,7 +78,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Financial Need */}
         <div className="space-y-4">
-          <Label className="text-xl font-semibold">What's your estimated annual financial need?</Label>
+          <Label className="text-lg font-bold text-foreground">What's your estimated annual financial need?</Label>
           <p className="text-sm text-muted-foreground">
             How much do you need for tuition, housing, books, etc.?
           </p>
@@ -111,7 +111,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
                 onChange={(e) => setNotSure(e.target.checked)}
                 className="h-4 w-4 rounded border-border"
               />
-              <label htmlFor="notSure" className="text-sm text-muted-foreground">
+              <label htmlFor="notSure" className="text-sm text-foreground font-medium cursor-pointer">
                 I'm not sure
               </label>
             </div>
@@ -120,7 +120,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
 
         {/* Interests */}
         <div className="space-y-4">
-          <Label className="text-xl font-semibold">What are you passionate about?</Label>
+          <Label className="text-lg font-bold text-foreground">What are you passionate about?</Label>
           <p className="text-sm text-muted-foreground">
             This helps us find niche scholarships that match your unique profile
           </p>
@@ -133,9 +133,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
                 <Badge
                   key={interest}
                   variant={isSelected ? 'default' : 'outline'}
-                  className={`cursor-pointer transition-all ${
-                    isSelected ? 'bg-primary hover:bg-primary/90' : 'hover:bg-primary/10'
-                  }`}
+                  className="cursor-pointer transition-all hover:scale-105 text-sm font-semibold border-2"
                   onClick={() => toggleInterest(interest)}
                 >
                   {interest}
@@ -150,7 +148,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
               {selectedInterests
                 .filter(i => !predefinedInterests.includes(i))
                 .map((interest) => (
-                  <Badge key={interest} variant="secondary" className="gap-1">
+                  <Badge key={interest} variant="secondary" className="gap-1 text-sm font-semibold">
                     {interest}
                     <X
                       className="h-3 w-3 cursor-pointer"
@@ -168,12 +166,13 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
               value={customInterest}
               onChange={(e) => setCustomInterest(e.target.value)}
               onKeyPress={handleKeyPress}
+              className="flex-1 text-foreground border-2"
             />
-            <Button variant="outline" onClick={addCustomInterest}>
+            <Button variant="outline" onClick={addCustomInterest} className="border-2">
               Add
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Press Enter or comma to add custom interests
           </p>
         </div>

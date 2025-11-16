@@ -44,12 +44,12 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
 
   return (
     <div className="space-y-8 animate-slide-up">
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-3">
         <p className="text-sm text-primary font-semibold">Question 2 of 6</p>
-        <h1 className="text-4xl md:text-5xl font-bold text-foreground">
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Where are you in your academic journey?
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           This helps us find the right opportunities for you
         </p>
       </div>
@@ -74,7 +74,7 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
                   <Icon className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg text-foreground">{status.label}</h3>
+                  <h3 className="font-semibold text-base text-foreground">{status.label}</h3>
                   <p className="text-sm text-muted-foreground">{status.desc}</p>
                 </div>
               </div>
@@ -103,14 +103,15 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
       {showSchool && (
         <div className="max-w-md mx-auto space-y-4 animate-slide-up">
           <div className="space-y-2">
-            <Label htmlFor="school">Which school do you attend? (Optional)</Label>
+            <Label htmlFor="school" className="text-foreground">Which school do you attend? (Optional)</Label>
             <Input
               id="school"
               placeholder="e.g., University of California, Berkeley"
               value={school}
               onChange={(e) => setSchool(e.target.value)}
+              className="text-foreground"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               You can skip this if you prefer not to share
             </p>
           </div>

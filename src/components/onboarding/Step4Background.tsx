@@ -53,12 +53,12 @@ const Step4Background: React.FC<Step4Props> = ({ data, onNext, onSkip }) => {
 
   return (
     <div className="space-y-8 animate-slide-up">
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-3">
         <p className="text-sm text-primary font-semibold">Question 4 of 6</p>
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
           These questions help us find opportunities designed for students like you
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           All questions are completely optional and kept private
         </p>
       </div>
@@ -96,9 +96,9 @@ const Step4Background: React.FC<Step4Props> = ({ data, onNext, onSkip }) => {
                   className="mt-0.5"
                 />
                 <div className="flex-1">
-                  <p className="font-medium">{option.label}</p>
+                  <p className="font-semibold text-foreground">{option.label}</p>
                   {option.tooltip && (
-                    <p className="text-xs text-muted-foreground mt-1">{option.tooltip}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{option.tooltip}</p>
                   )}
                 </div>
               </div>

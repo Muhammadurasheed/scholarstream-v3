@@ -41,12 +41,12 @@ const Step1Name: React.FC<Step1Props> = ({ data, onNext }) => {
 
   return (
     <div className="space-y-8 animate-slide-up">
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-3">
         <p className="text-sm text-primary font-semibold">Question 1 of 6</p>
-        <h1 className="text-4xl md:text-5xl font-bold text-foreground">
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Let's start simple. What's your name?
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           We'll use this to personalize your experience
         </p>
       </div>
