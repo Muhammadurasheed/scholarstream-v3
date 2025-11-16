@@ -1,16 +1,15 @@
 """
-Scholarship Matching Service
-Combines scraping, AI enrichment, and matching logic
+Opportunity Matching Service
+Combines scraping, AI enrichment, and matching logic for all opportunity types
 """
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import structlog
 from datetime import datetime
 
 from app.models import (
     Scholarship,
     UserProfile,
-    ScrapedScholarship,
     DiscoveryJobResponse
 )
 from app.services.scraper_service import scraper_service
@@ -20,8 +19,8 @@ from app.database import db
 logger = structlog.get_logger()
 
 
-class ScholarshipMatchingService:
-    """Orchestrates scholarship discovery and matching"""
+class OpportunityMatchingService:
+    """Orchestrates multi-opportunity discovery and matching"""
     
     async def discover_and_match(
         self,
@@ -29,157 +28,104 @@ class ScholarshipMatchingService:
         user_profile: UserProfile
     ) -> DiscoveryJobResponse:
         """
-        Main discovery workflow:
-        1. Return immediate results from cache
-        2. Start background job for new discovery
-        3. Scrape from multiple sources
-        4. Enrich with AI
-        5. Calculate match scores
-        6. Store results
+        Main discovery workflow for ALL opportunity types
         """
-        # Generate job ID
         job_id = str(uuid.uuid4())
         
         try:
-            # Step 1: Get immediate results from cache
-            cached_scholarships = await db.get_all_scholarships()
+            # Step 1: Get cached opportunities
+            cached_opportunities = await db.get_all_scholarships()
             
-            # If we have cached data, return immediately
-            if cached_scholarships:
-                # Calculate match scores for cached scholarships
-                matched_scholarships = self._filter_and_rank(cached_scholarships, user_profile)
-                
-                # Save user matches
-                scholarship_ids = [s.id for s in matched_scholarships]
+            if cached_opportunities:
+                matched = self._filter_and_rank(cached_opportunities, user_profile)
+                scholarship_ids = [s.id for s in matched]
                 await db.save_user_matches(user_id, scholarship_ids)
                 
-                logger.info("Returning cached scholarships", count=len(matched_scholarships))
+                logger.info("Returning cached opportunities", count=len(matched))
                 
                 return DiscoveryJobResponse(
                     status="completed",
-                    immediate_results=matched_scholarships[:30],  # Return top 30
+                    immediate_results=matched[:30],
                     job_id=job_id,
                     estimated_completion=0,
-                    total_found=len(matched_scholarships)
+                    total_found=len(matched)
                 )
             
-            # Step 2: No cache, start fresh discovery
+            # Step 2: Start fresh discovery
             await db.create_discovery_job(user_id, job_id)
             
-            # Step 3: Scrape scholarships
-            logger.info("Starting scholarship scraping")
-            scraped_scholarships = await scraper_service.discover_scholarships(
+            # Step 3: Scrape ALL opportunity types
+            logger.info("Starting multi-opportunity scraping")
+            raw_opportunities = await scraper_service.discover_all_opportunities(
                 user_profile.model_dump()
             )
             
-            logger.info("Scraping complete", count=len(scraped_scholarships))
+            logger.info("Scraping complete", count=len(raw_opportunities))
             
-            # Step 4: Enrich with AI
-            logger.info("Starting AI enrichment")
-            enriched_scholarships = []
-            
-            for i, scraped in enumerate(scraped_scholarships):
+            # Step 4: Convert to Scholarship objects (unified model)
+            opportunities = []
+            for opp_data in raw_opportunities:
                 try:
-                    # AI enrichment
-                    enriched_data = await ai_service.enrich_scholarship(scraped, user_profile)
-                    
-                    if enriched_data:
-                        # Build complete scholarship object
-                        scholarship = Scholarship(
-                            id=str(uuid.uuid4()),
-                            name=scraped.name,
-                            organization=scraped.organization,
-                            logo_url=None,
-                            amount=scraped.amount,
-                            amount_display=f"${int(scraped.amount):,}",
-                            deadline=scraped.deadline,
-                            deadline_type="fixed",
-                            eligibility=enriched_data.eligibility,
-                            requirements=enriched_data.requirements,
-                            match_score=enriched_data.match_score,
-                            match_tier=enriched_data.match_tier,
-                            priority_level=enriched_data.priority_level,
-                            tags=enriched_data.tags,
-                            description=scraped.description,
-                            competition_level=enriched_data.competition_level,
-                            estimated_time=enriched_data.estimated_time,
-                            expected_value=scraped.amount / float(enriched_data.estimated_time.split()[0]),
-                            source_url=scraped.source_url,
-                            source_type="scraped",
-                            discovered_at=datetime.now().isoformat(),
-                            last_verified=datetime.now().isoformat()
-                        )
-                        
-                        enriched_scholarships.append(scholarship)
-                        
-                        # Save to database
-                        await db.save_scholarship(scholarship)
-                    
-                    # Update progress
-                    progress = (i + 1) / len(scraped_scholarships) * 100
-                    await db.update_discovery_job(
-                        job_id,
-                        "processing",
-                        progress,
-                        len(enriched_scholarships)
-                    )
-                    
+                    scholarship = self._convert_to_scholarship(opp_data, user_profile)
+                    if scholarship:
+                        opportunities.append(scholarship)
                 except Exception as e:
-                    logger.error("Failed to enrich scholarship", error=str(e), scholarship=scraped.name)
-                    continue
+                    logger.error("Failed to convert opportunity", error=str(e))
             
-            logger.info("AI enrichment complete", count=len(enriched_scholarships))
+            # Step 5: Filter and rank
+            matched_opportunities = self._filter_and_rank(opportunities, user_profile)
             
-            # Step 5: Rank by match score
-            ranked_scholarships = sorted(
-                enriched_scholarships,
-                key=lambda x: x.match_score,
-                reverse=True
-            )
+            # Step 6: Store in database
+            for opp in matched_opportunities:
+                await db.save_scholarship(opp)
             
-            # Step 6: Save user matches
-            scholarship_ids = [s.id for s in ranked_scholarships]
+            scholarship_ids = [s.id for s in matched_opportunities]
             await db.save_user_matches(user_id, scholarship_ids)
             
             # Update job status
-            await db.update_discovery_job(
-                job_id,
-                "completed",
-                100.0,
-                len(ranked_scholarships)
+            await db.update_job_status(
+                job_id=job_id,
+                status="completed",
+                scholarships_found=len(matched_opportunities)
             )
+            
+            logger.info("Discovery complete", total=len(matched_opportunities))
             
             return DiscoveryJobResponse(
                 status="completed",
-                immediate_results=ranked_scholarships[:30],
+                immediate_results=matched_opportunities[:30],
                 job_id=job_id,
-                total_found=len(ranked_scholarships)
+                estimated_completion=0,
+                total_found=len(matched_opportunities)
             )
             
         except Exception as e:
-            logger.error("Discovery failed", error=str(e), user_id=user_id)
-            await db.update_discovery_job(job_id, "failed", 0, 0)
+            logger.error("Discovery failed", error=str(e))
+            await db.update_job_status(job_id, "failed", 0)
             raise
+    
+    def _convert_to_scholarship(self, opp_data: Dict[str, Any], user_profile: UserProfile) -> Optional[Scholarship]:
+        """Convert raw opportunity to Scholarship model"""
+        from app.services.opportunity_converter import convert_to_scholarship
+        return convert_to_scholarship(opp_data, user_profile)
     
     def _filter_and_rank(
         self,
-        scholarships: List[Scholarship],
+        opportunities: List[Scholarship],
         user_profile: UserProfile
     ) -> List[Scholarship]:
         """
-        Filter scholarships based on eligibility
-        Rank by match score
+        Filter opportunities based on eligibility and rank by match score
         """
         eligible = []
         
-        for scholarship in scholarships:
+        for opp in opportunities:
             # Basic eligibility checks
-            if scholarship.eligibility.gpa_min:
-                if not user_profile.gpa or user_profile.gpa < scholarship.eligibility.gpa_min:
+            if opp.eligibility.gpa_min:
+                if not user_profile.gpa or user_profile.gpa < opp.eligibility.gpa_min:
                     continue
             
-            # Add more filtering logic here
-            eligible.append(scholarship)
+            eligible.append(opp)
         
         # Sort by match score
         return sorted(eligible, key=lambda x: x.match_score, reverse=True)
@@ -193,10 +139,10 @@ class ScholarshipMatchingService:
         
         return DiscoveryJobResponse(
             status=job_data['status'],
-            progress=job_data['progress'],
+            progress=job_data.get('progress', 100.0),
             total_found=job_data['scholarships_found']
         )
 
 
 # Global matching service instance
-matching_service = ScholarshipMatchingService()
+matching_service = OpportunityMatchingService()

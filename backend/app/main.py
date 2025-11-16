@@ -12,7 +12,7 @@ import structlog
 import logging
 
 from app.config import settings
-from app.routes import scholarships, applications
+from app.routes import scholarships, applications, chat
 
 # Configure structured logging with readable format for development
 log_renderer = (
@@ -134,6 +134,7 @@ async def root():
 # Include routers
 app.include_router(scholarships.router)
 app.include_router(applications.router)
+app.include_router(chat.router)
 
 
 # Startup event
