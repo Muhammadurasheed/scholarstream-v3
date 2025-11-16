@@ -13,6 +13,12 @@ This project needs **TWO different .env files**:
 
 ---
 
+## ⚠️ FIRESTORE SECURITY RULES REQUIRED
+
+**After setting up Firebase, you MUST configure Firestore security rules** or you'll get "Missing or insufficient permissions" errors. See detailed instructions in **[FIRESTORE_RULES.md](./FIRESTORE_RULES.md)**.
+
+---
+
 ## Quick Start Guide
 
 ### 1. Frontend Setup (React + Firebase Web App)
@@ -62,6 +68,8 @@ VITE_FIREBASE_APP_ID=1:123456789:web:abc123
 2. Click "Create database"
 3. Start in **Test mode** for development
 4. Choose your region
+
+⚠️ **CRITICAL**: After creating the database, you MUST configure security rules. See **[FIRESTORE_RULES.md](./FIRESTORE_RULES.md)** for detailed instructions.
 
 #### Run the frontend:
 ```bash

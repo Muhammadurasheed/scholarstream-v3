@@ -31,43 +31,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🔄 [AUTH] Initializing auth state listener...');
+    
     // Listen to Firebase auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        console.log('✅ [AUTH] User authenticated:', {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email
+        });
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email || '',
         });
       } else {
+        console.log('👤 [AUTH] No authenticated user');
         setUser(null);
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log('🔄 [AUTH] Cleaning up auth listener');
+      unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
     try {
-      console.log('🔐 Starting signup process...');
+      console.log('🔐 [SIGNUP] Starting signup process...', { email });
+      
+      // Step 1: Create Firebase Auth user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const { uid, email: userEmail } = userCredential.user;
       
-      console.log('✅ User created successfully:', uid);
+      console.log('✅ [SIGNUP] Firebase Auth user created successfully', { uid, email: userEmail });
       
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', uid), {
-        uid,
-        email: userEmail,
-        created_at: new Date(),
-        onboarding_completed: false,
-        profile: null,
-      });
+      // Step 2: Try to create user document in Firestore (non-blocking)
+      try {
+        console.log('📝 [SIGNUP] Creating user document in Firestore...');
+        await setDoc(doc(db, 'users', uid), {
+          uid,
+          email: userEmail,
+          created_at: new Date(),
+          onboarding_completed: false,
+          profile: null,
+        });
+        console.log('✅ [SIGNUP] User document created in Firestore successfully');
+      } catch (firestoreError: any) {
+        // Log Firestore error but don't fail the signup
+        console.warn('⚠️ [SIGNUP] Firestore write failed (non-critical):', {
+          code: firestoreError.code,
+          message: firestoreError.message
+        });
+        console.warn('⚠️ [SIGNUP] User authentication successful, but Firestore rules may need to be configured');
+        console.warn('📚 [SIGNUP] See FIRESTORE_RULES.md for setup instructions');
+      }
       
-      console.log('✅ User document created in Firestore');
       localStorage.removeItem('scholarstream_onboarding_complete');
+      console.log('✅ [SIGNUP] Signup process completed successfully');
+      
     } catch (error: any) {
-      console.error('❌ Signup error:', error);
+      console.error('❌ [SIGNUP] Signup failed:', {
+        code: error.code,
+        message: error.message,
+        fullError: error
+      });
       
       // Parse Firebase error codes to user-friendly messages
       const errorMessages: { [key: string]: string } = {
@@ -86,11 +115,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('🔐 Starting signin process...');
+      console.log('🔐 [SIGNIN] Starting signin process...', { email });
       await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ Signed in successfully');
+      console.log('✅ [SIGNIN] Signed in successfully', { email });
     } catch (error: any) {
-      console.error('❌ Signin error:', error);
+      console.error('❌ [SIGNIN] Signin failed:', {
+        code: error.code,
+        message: error.message
+      });
       
       const errorMessages: { [key: string]: string } = {
         'auth/user-not-found': 'No account found with this email.',
@@ -98,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         'auth/invalid-email': 'Please enter a valid email address.',
         'auth/user-disabled': 'This account has been disabled.',
         'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+        'auth/invalid-credential': 'Invalid email or password. Please try again.',
         'auth/api-key-not-valid': '⚠️ Firebase is not configured correctly. Please check your .env file.',
       };
       
@@ -108,12 +141,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      console.log('🚪 Signing out...');
+      console.log('🚪 [SIGNOUT] Signing out...');
       await firebaseSignOut(auth);
       localStorage.removeItem('scholarstream_onboarding_complete');
-      console.log('✅ Signed out successfully');
+      console.log('✅ [SIGNOUT] Signed out successfully');
     } catch (error: any) {
-      console.error('❌ Signout error:', error);
+      console.error('❌ [SIGNOUT] Signout failed:', {
+        code: error.code,
+        message: error.message
+      });
       throw new Error(error.message || 'Failed to sign out');
     }
   };
