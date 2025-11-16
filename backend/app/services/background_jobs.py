@@ -3,7 +3,7 @@ Background Jobs - Automated Opportunity Discovery
 Scheduled jobs that refresh opportunity cache every 6 hours
 """
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from datetime import datetime
+from datetime import datetime, timedelta
 import structlog
 
 from app.services.scraper_service import scraper_service
@@ -38,13 +38,11 @@ async def refresh_opportunities_job():
         # 3. Convert to Scholarship model
         # Create a generic user profile for conversion
         generic_profile = UserProfile(
-            firstName="",
-            lastName="",
-            email="",
+            name="System",
             academic_status="undergraduate",
             major="Computer Science",
             gpa=3.5,
-            graduation_year=2026,
+            graduation_year="2026",
             interests=["Technology"],
             background=[]
         )
@@ -96,7 +94,7 @@ def start_scheduler():
     scheduler.add_job(
         refresh_opportunities_job,
         'date',
-        run_date=datetime.now(),
+        run_date=datetime.now() + timedelta(seconds=30),
         id='initial_refresh',
         replace_existing=True
     )
