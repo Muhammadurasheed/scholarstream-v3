@@ -2,33 +2,54 @@
 
 **Bismillah ir-Rahman ir-Rahim** ✨
 
+## 🚨 CRITICAL: Two Separate .env Files Required
+
+This project needs **TWO different .env files**:
+
+1. **`.env`** in project root (for frontend - React/Vite)
+2. **`backend/.env`** in backend folder (for backend - FastAPI)
+
+**DO NOT CONFUSE THEM!** They have different variables and purposes.
+
+---
+
 ## Quick Start Guide
 
-### 1. Frontend Setup (React + Firebase)
+### 1. Frontend Setup (React + Firebase Web App)
 
-#### Create your `.env` file:
+#### Create your frontend `.env` file:
 ```bash
-# In the project root (same folder as package.json)
+# In the PROJECT ROOT (same folder as package.json, NOT in backend/)
 cp .env.example .env
 ```
 
-#### Get your Firebase credentials:
+#### Get your Firebase WEB APP credentials (NOT Admin SDK):
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or select existing one
-3. Click the gear icon ⚙️ → Project Settings
+2. Select your project: **scholarstream-i4i**
+3. Click the gear icon ⚙️ → **Project Settings**
 4. Scroll down to "Your apps" section
-5. Click the web icon `</>` to create a web app
-6. Copy the `firebaseConfig` object values
-7. Paste them into your `.env` file:
+5. **If you don't have a web app yet:**
+   - Click the web icon `</>` 
+   - Register app with nickname "ScholarStream Web"
+   - **Copy the firebaseConfig values that appear**
+6. **If you already have a web app:**
+   - Click on your web app in "Your apps" section
+   - Scroll to "SDK setup and configuration"
+   - Select "Config" radio button
+   - **Copy the firebaseConfig values**
+   
+7. Paste them into your **ROOT** `.env` file (NOT backend/.env):
 
 ```env
-VITE_FIREBASE_API_KEY=AIzaSyC...
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_API_KEY=AIzaSyC...    # This is your WEB API key (different from backend)
+VITE_FIREBASE_AUTH_DOMAIN=scholarstream-i4i.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=scholarstream-i4i
+VITE_FIREBASE_STORAGE_BUCKET=scholarstream-i4i.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
 VITE_FIREBASE_APP_ID=1:123456789:web:abc123
 ```
+
+**⚠️ IMPORTANT:** These are WEB credentials, different from the Admin SDK credentials in backend/.env!
 
 #### Enable Firebase Authentication:
 1. In Firebase Console, go to Authentication
