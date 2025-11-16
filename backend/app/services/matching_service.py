@@ -3,7 +3,7 @@ Scholarship Matching Service
 Combines scraping, AI enrichment, and matching logic
 """
 import uuid
-from typing import List
+from typing import List, Optional
 import structlog
 from datetime import datetime
 
