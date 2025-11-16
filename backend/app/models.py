@@ -2,7 +2,7 @@
 Pydantic models for ScholarStream API
 Data validation and serialization schemas
 """
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict
 from datetime import datetime
 from pydantic import BaseModel, Field, validator
 

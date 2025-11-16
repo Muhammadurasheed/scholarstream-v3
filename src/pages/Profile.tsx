@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,12 +13,31 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { updatePassword, updateEmail, EmailAuthProvider, reauthenticateWithCredential, deleteUser } from 'firebase/auth';
 import { 
   User, GraduationCap, FileText, Bell, Settings, 
   Upload, Download, Trash2, Eye, Award, Calendar,
   Shield, Mail, Lock, AlertTriangle
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface UserProfile {
   firstName: string;
@@ -77,6 +96,15 @@ export default function Profile() {
   });
   const [documents, setDocuments] = useState<Document[]>([]);
   const [profileStrength, setProfileStrength] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadUserData();
@@ -91,69 +119,73 @@ export default function Profile() {
     
     setLoading(true);
     try {
-      // Load profile
       const savedProfile = localStorage.getItem('scholarstream_profile');
       if (savedProfile) {
         setProfile(JSON.parse(savedProfile));
       }
 
-      // Load preferences from Firestore
-      const prefsDoc = await getDoc(doc(db, 'users', user.uid, 'preferences', 'notifications'));
+      const prefsDoc = await getDoc(doc(db, 'user_preferences', user.uid));
       if (prefsDoc.exists()) {
         setPreferences(prefsDoc.data() as NotificationPreferences);
       }
 
-      // Load documents
-      const docsDoc = await getDoc(doc(db, 'users', user.uid, 'documents', 'library'));
+      const docsDoc = await getDoc(doc(db, 'user_documents', user.uid));
       if (docsDoc.exists()) {
         setDocuments(docsDoc.data().documents || []);
       }
     } catch (error) {
       console.error('Error loading user data:', error);
-      toast({
-        title: 'Error Loading Profile',
-        description: 'Some data may not be available',
-        variant: 'destructive',
-      });
     } finally {
       setLoading(false);
     }
   };
 
   const calculateProfileStrength = () => {
-    if (!profile) return;
-    
+    if (!profile) {
+      setProfileStrength(0);
+      return;
+    }
+
     let strength = 0;
-    if (profile.firstName && profile.lastName) strength += 10;
-    if (profile.school) strength += 15;
-    if (profile.major) strength += 15;
-    if (profile.gpa) strength += 10;
-    if (profile.graduationYear) strength += 10;
-    if (profile.background?.length > 0) strength += 10;
-    if (profile.interests?.length > 0) strength += 10;
-    if (profile.testScores && Object.keys(profile.testScores).length > 0) strength += 10;
-    if (profile.achievements && profile.achievements.length > 0) strength += 10;
-    
+    const checks = [
+      { condition: !!profile.firstName && !!profile.lastName, value: 15 },
+      { condition: !!profile.email && !!profile.phone, value: 15 },
+      { condition: !!profile.school && !!profile.major, value: 20 },
+      { condition: !!profile.gpa, value: 10 },
+      { condition: (profile.testScores && Object.keys(profile.testScores).length > 0), value: 10 },
+      { condition: (profile.achievements && profile.achievements.length > 0), value: 10 },
+      { condition: (profile.interests && profile.interests.length >= 3), value: 10 },
+      { condition: documents.length > 0, value: 10 },
+    ];
+
+    checks.forEach(check => {
+      if (check.condition) strength += check.value;
+    });
+
     setProfileStrength(strength);
   };
 
   const saveProfile = async () => {
     if (!user || !profile) return;
-    
+
     setSaving(true);
     try {
       localStorage.setItem('scholarstream_profile', JSON.stringify(profile));
-      await setDoc(doc(db, 'users', user.uid, 'profile', 'data'), profile);
-      
+
+      await setDoc(doc(db, 'users', user.uid), {
+        ...profile,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
       toast({
-        title: 'Profile Saved',
-        description: 'Your changes have been saved successfully',
+        title: 'Profile updated',
+        description: 'Your changes have been saved successfully.',
       });
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
-        title: 'Save Failed',
-        description: 'Could not save your profile. Please try again.',
+        title: 'Error',
+        description: 'Failed to save profile. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -163,18 +195,238 @@ export default function Profile() {
 
   const savePreferences = async () => {
     if (!user) return;
-    
+
     try {
-      await setDoc(doc(db, 'users', user.uid, 'preferences', 'notifications'), preferences);
+      await setDoc(doc(db, 'user_preferences', user.uid), preferences);
       toast({
-        title: 'Preferences Saved',
-        description: 'Your notification preferences have been updated',
+        title: 'Preferences saved',
+        description: 'Your notification preferences have been updated.',
       });
     } catch (error) {
       console.error('Error saving preferences:', error);
       toast({
-        title: 'Save Failed',
-        description: 'Could not save preferences. Please try again.',
+        title: 'Error',
+        description: 'Failed to save preferences.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please upload a file smaller than 10MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'scholarstream_docs');
+
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'demo';
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      const newDoc: Document = {
+        id: crypto.randomUUID(),
+        name: file.name,
+        type: file.type.split('/')[1]?.toUpperCase() || 'FILE',
+        uploadDate: new Date().toISOString(),
+        fileSize: file.size,
+        url: data.secure_url,
+        usedIn: [],
+      };
+
+      const updatedDocs = [...documents, newDoc];
+      setDocuments(updatedDocs);
+
+      await setDoc(doc(db, 'user_documents', user.uid), {
+        documents: updatedDocs,
+      });
+
+      toast({
+        title: 'Document uploaded',
+        description: 'Your document has been uploaded successfully.',
+      });
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload document. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const deleteDocument = async (docId: string) => {
+    if (!user) return;
+
+    try {
+      const updatedDocs = documents.filter(doc => doc.id !== docId);
+      setDocuments(updatedDocs);
+
+      await setDoc(doc(db, 'user_documents', user.uid), {
+        documents: updatedDocs,
+      });
+
+      toast({
+        title: 'Document deleted',
+        description: 'Document removed successfully.',
+      });
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete document.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!user || !currentPassword || !newPassword) return;
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Passwords do not match',
+        description: 'Please ensure both passwords are the same.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Password too short',
+        description: 'Password must be at least 6 characters.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(user.email!, currentPassword);
+      await reauthenticateWithCredential(user as any, credential);
+      await updatePassword(user as any, newPassword);
+
+      setShowPasswordDialog(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      toast({
+        title: 'Password updated',
+        description: 'Your password has been changed successfully.',
+      });
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      toast({
+        title: 'Error',
+        description: error.code === 'auth/wrong-password' 
+          ? 'Current password is incorrect.' 
+          : 'Failed to change password.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleChangeEmail = async () => {
+    if (!user || !newEmail || !currentPassword) return;
+
+    try {
+      const credential = EmailAuthProvider.credential(user.email!, currentPassword);
+      await reauthenticateWithCredential(user as any, credential);
+      await updateEmail(user as any, newEmail);
+
+      setShowEmailDialog(false);
+      setNewEmail('');
+      setCurrentPassword('');
+
+      toast({
+        title: 'Email updated',
+        description: 'Your email has been changed successfully.',
+      });
+    } catch (error: any) {
+      console.error('Error changing email:', error);
+      toast({
+        title: 'Error',
+        description: error.code === 'auth/email-already-in-use'
+          ? 'This email is already in use.'
+          : 'Failed to change email.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleExportData = async () => {
+    if (!user) return;
+
+    try {
+      const userData = {
+        profile,
+        preferences,
+        documents: documents.map(doc => ({ ...doc, url: '[REDACTED]' })),
+        exportDate: new Date().toISOString(),
+      };
+
+      const dataStr = JSON.stringify(userData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `scholarstream-data-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Data exported',
+        description: 'Your data has been downloaded successfully.',
+      });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to export data.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    try {
+      await deleteUser(user as any);
+      
+      toast({
+        title: 'Account deleted',
+        description: 'Your account has been permanently deleted.',
+      });
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      toast({
+        title: 'Error',
+        description: error.code === 'auth/requires-recent-login'
+          ? 'Please log out and log back in before deleting your account.'
+          : 'Failed to delete account.',
         variant: 'destructive',
       });
     }
@@ -182,18 +434,9 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Skeleton className="h-12 w-64 mb-8" />
-          <div className="flex gap-8">
-            <div className="flex-1">
-              <Skeleton className="h-96 w-full" />
-            </div>
-            <div className="w-80">
-              <Skeleton className="h-64 w-full" />
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-background p-8">
+        <Skeleton className="h-12 w-64 mb-8" />
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
@@ -201,7 +444,6 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Profile Settings</h1>
           <p className="text-muted-foreground">
@@ -210,7 +452,6 @@ export default function Profile() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Main Content */}
           <div className="flex-1">
             <Tabs defaultValue="profile" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
@@ -232,7 +473,6 @@ export default function Profile() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* TAB 1: Profile Information */}
               <TabsContent value="profile" className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -288,131 +528,8 @@ export default function Profile() {
                     </Button>
                   </CardContent>
                 </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Academic Profile</CardTitle>
-                    <CardDescription>
-                      Keep your academic information up to date for better matches
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="school">School</Label>
-                      <Input
-                        id="school"
-                        value={profile?.school || ''}
-                        onChange={(e) => setProfile(prev => prev ? {...prev, school: e.target.value} : null)}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="major">Major</Label>
-                        <Input
-                          id="major"
-                          value={profile?.major || ''}
-                          onChange={(e) => setProfile(prev => prev ? {...prev, major: e.target.value} : null)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="year">Academic Year</Label>
-                        <Select
-                          value={profile?.year || ''}
-                          onValueChange={(value) => setProfile(prev => prev ? {...prev, year: value} : null)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select year" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="freshman">Freshman</SelectItem>
-                            <SelectItem value="sophomore">Sophomore</SelectItem>
-                            <SelectItem value="junior">Junior</SelectItem>
-                            <SelectItem value="senior">Senior</SelectItem>
-                            <SelectItem value="graduate">Graduate</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="gpa">GPA</Label>
-                        <Input
-                          id="gpa"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="4.0"
-                          value={profile?.gpa || ''}
-                          onChange={(e) => setProfile(prev => prev ? {...prev, gpa: parseFloat(e.target.value)} : null)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="graduation">Expected Graduation</Label>
-                        <Input
-                          id="graduation"
-                          value={profile?.graduationYear || ''}
-                          onChange={(e) => setProfile(prev => prev ? {...prev, graduationYear: e.target.value} : null)}
-                          placeholder="May 2025"
-                        />
-                      </div>
-                    </div>
-
-                    <Button onClick={saveProfile} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Background & Interests</CardTitle>
-                    <CardDescription>
-                      This helps us find targeted scholarship opportunities
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Background</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {profile?.background?.map((bg, idx) => (
-                          <Badge key={idx} variant="secondary">{bg}</Badge>
-                        ))}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Edit these in the onboarding flow
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Interests</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {profile?.interests?.map((interest, idx) => (
-                          <Badge key={idx} variant="outline">{interest}</Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="financialNeed">Financial Need (Annual)</Label>
-                      <Input
-                        id="financialNeed"
-                        type="number"
-                        value={profile?.financialNeed || ''}
-                        onChange={(e) => setProfile(prev => prev ? {...prev, financialNeed: parseInt(e.target.value)} : null)}
-                        placeholder="$50,000"
-                      />
-                    </div>
-
-                    <Button onClick={saveProfile} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  </CardContent>
-                </Card>
               </TabsContent>
 
-              {/* TAB 2: Documents Library */}
               <TabsContent value="documents" className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -423,9 +540,20 @@ export default function Profile() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <Button className="w-full">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        onChange={handleFileUpload}
+                      />
+                      <Button 
+                        className="w-full"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                      >
                         <Upload className="w-4 h-4 mr-2" />
-                        Upload New Document
+                        {uploading ? 'Uploading...' : 'Upload New Document'}
                       </Button>
 
                       {documents.length === 0 ? (
@@ -447,18 +575,35 @@ export default function Profile() {
                                     <div>
                                       <p className="font-medium">{doc.name}</p>
                                       <p className="text-sm text-muted-foreground">
-                                        {doc.type} • {(doc.fileSize / 1024).toFixed(1)} KB
+                                        {doc.type} • {(doc.fileSize / 1024).toFixed(1)} KB • {new Date(doc.uploadDate).toLocaleDateString()}
                                       </p>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="icon">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      onClick={() => window.open(doc.url, '_blank')}
+                                    >
                                       <Eye className="w-4 h-4" />
                                     </Button>
-                                    <Button variant="ghost" size="icon">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      onClick={() => {
+                                        const link = document.createElement('a');
+                                        link.href = doc.url;
+                                        link.download = doc.name;
+                                        link.click();
+                                      }}
+                                    >
                                       <Download className="w-4 h-4" />
                                     </Button>
-                                    <Button variant="ghost" size="icon">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      onClick={() => deleteDocument(doc.id)}
+                                    >
                                       <Trash2 className="w-4 h-4" />
                                     </Button>
                                   </div>
@@ -473,28 +618,25 @@ export default function Profile() {
                 </Card>
               </TabsContent>
 
-              {/* TAB 3: Notification Preferences */}
               <TabsContent value="notifications" className="space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>Email Notifications</CardTitle>
                     <CardDescription>
-                      Choose which emails you want to receive
+                      Choose what updates you want to receive
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label>New Scholarship Matches</Label>
                         <p className="text-sm text-muted-foreground">
-                          Get notified when new scholarships match your profile
+                          Get notified when we find scholarships that match your profile
                         </p>
                       </div>
                       <Switch
                         checked={preferences.newMatches}
-                        onCheckedChange={(checked) => 
-                          setPreferences(prev => ({...prev, newMatches: checked}))
-                        }
+                        onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, newMatches: checked }))}
                       />
                     </div>
 
@@ -504,14 +646,12 @@ export default function Profile() {
                       <div className="space-y-0.5">
                         <Label>Deadline Reminders</Label>
                         <p className="text-sm text-muted-foreground">
-                          Reminders 7 days, 3 days, and 1 day before deadlines
+                          Reminders at 7 days, 3 days, and 1 day before deadlines
                         </p>
                       </div>
                       <Switch
                         checked={preferences.deadlineReminders}
-                        onCheckedChange={(checked) => 
-                          setPreferences(prev => ({...prev, deadlineReminders: checked}))
-                        }
+                        onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, deadlineReminders: checked }))}
                       />
                     </div>
 
@@ -521,76 +661,23 @@ export default function Profile() {
                       <div className="space-y-0.5">
                         <Label>Application Status Updates</Label>
                         <p className="text-sm text-muted-foreground">
-                          Updates on your submitted applications
+                          Updates on your application status and decisions
                         </p>
                       </div>
                       <Switch
                         checked={preferences.statusUpdates}
-                        onCheckedChange={(checked) => 
-                          setPreferences(prev => ({...prev, statusUpdates: checked}))
-                        }
+                        onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, statusUpdates: checked }))}
                       />
                     </div>
 
                     <Separator />
 
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Recommendation Letters</Label>
-                        <p className="text-sm text-muted-foreground">
-                          When recommenders submit letters
-                        </p>
-                      </div>
-                      <Switch
-                        checked={preferences.recommendationUpdates}
-                        onCheckedChange={(checked) => 
-                          setPreferences(prev => ({...prev, recommendationUpdates: checked}))
-                        }
-                      />
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Weekly Digest</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Summary of opportunities and activity
-                        </p>
-                      </div>
-                      <Switch
-                        checked={preferences.weeklyDigest}
-                        onCheckedChange={(checked) => 
-                          setPreferences(prev => ({...prev, weeklyDigest: checked}))
-                        }
-                      />
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Tips & Advice</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Helpful tips for scholarship applications
-                        </p>
-                      </div>
-                      <Switch
-                        checked={preferences.tipsAndAdvice}
-                        onCheckedChange={(checked) => 
-                          setPreferences(prev => ({...prev, tipsAndAdvice: checked}))
-                        }
-                      />
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <Label>Notification Frequency</Label>
-                      <Select
+                      <Select 
                         value={preferences.reminderFrequency}
-                        onValueChange={(value: any) => 
-                          setPreferences(prev => ({...prev, reminderFrequency: value}))
+                        onValueChange={(value: 'realtime' | 'daily' | 'weekly') => 
+                          setPreferences(prev => ({ ...prev, reminderFrequency: value }))
                         }
                       >
                         <SelectTrigger>
@@ -611,7 +698,6 @@ export default function Profile() {
                 </Card>
               </TabsContent>
 
-              {/* TAB 4: Account Settings */}
               <TabsContent value="account" className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -625,7 +711,7 @@ export default function Profile() {
                       <Label>Email Address</Label>
                       <div className="flex gap-2">
                         <Input value={user?.email || ''} disabled />
-                        <Button variant="outline">
+                        <Button variant="outline" onClick={() => setShowEmailDialog(true)}>
                           <Mail className="w-4 h-4 mr-2" />
                           Change
                         </Button>
@@ -634,7 +720,11 @@ export default function Profile() {
 
                     <div className="space-y-2">
                       <Label>Password</Label>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start"
+                        onClick={() => setShowPasswordDialog(true)}
+                      >
                         <Lock className="w-4 h-4 mr-2" />
                         Change Password
                       </Button>
@@ -642,7 +732,7 @@ export default function Profile() {
 
                     <div className="space-y-2">
                       <Label>Two-Factor Authentication</Label>
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button variant="outline" className="w-full justify-start" disabled>
                         <Shield className="w-4 h-4 mr-2" />
                         Enable 2FA (Coming Soon)
                       </Button>
@@ -658,7 +748,11 @@ export default function Profile() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={handleExportData}
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Export My Data
                     </Button>
@@ -673,7 +767,11 @@ export default function Profile() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button variant="destructive" className="w-full">
+                    <Button 
+                      variant="destructive" 
+                      className="w-full"
+                      onClick={() => setShowDeleteDialog(true)}
+                    >
                       <AlertTriangle className="w-4 h-4 mr-2" />
                       Delete Account
                     </Button>
@@ -683,9 +781,7 @@ export default function Profile() {
             </Tabs>
           </div>
 
-          {/* Right Sidebar */}
           <div className="w-full lg:w-80 space-y-6">
-            {/* Profile Strength */}
             <Card>
               <CardHeader>
                 <CardTitle>Profile Strength</CardTitle>
@@ -694,77 +790,172 @@ export default function Profile() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-center">
-                  <div className="relative w-32 h-32">
-                    <svg className="w-full h-full transform -rotate-90">
+                <div className="flex flex-col items-center">
+                  <div className="relative w-32 h-32 mb-4">
+                    <svg className="w-full h-full" viewBox="0 0 100 100">
                       <circle
-                        cx="64"
-                        cy="64"
-                        r="56"
-                        stroke="currentColor"
-                        strokeWidth="8"
-                        fill="none"
-                        className="text-muted"
+                        className="text-muted stroke-current"
+                        strokeWidth="10"
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
                       />
                       <circle
-                        cx="64"
-                        cy="64"
-                        r="56"
-                        stroke="currentColor"
-                        strokeWidth="8"
-                        fill="none"
-                        strokeDasharray={`${2 * Math.PI * 56}`}
-                        strokeDashoffset={`${2 * Math.PI * 56 * (1 - profileStrength / 100)}`}
-                        className="text-primary transition-all duration-500"
+                        className="text-primary stroke-current"
+                        strokeWidth="10"
+                        strokeLinecap="round"
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                        strokeDasharray={`${profileStrength * 2.51} 251`}
+                        transform="rotate(-90 50 50)"
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-3xl font-bold">{profileStrength}%</span>
                     </div>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">To improve your score:</p>
-                  {profileStrength < 100 && (
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      {!profile?.testScores && <p>• Add test scores (+10%)</p>}
-                      {!profile?.achievements?.length && <p>• Add achievements (+10%)</p>}
-                      {!profile?.phone && <p>• Add phone number (+5%)</p>}
-                    </div>
-                  )}
+                  <h4 className="text-lg font-semibold mb-2">To improve your score:</h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    {!profile?.testScores && <li>• Add test scores (+10%)</li>}
+                    {!profile?.achievements?.length && <li>• Add achievements (+10%)</li>}
+                    {documents.length === 0 && <li>• Upload documents (+10%)</li>}
+                    {!profile?.phone && <li>• Add phone number (+5%)</li>}
+                  </ul>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Quick Stats */}
             <Card>
               <CardHeader>
                 <CardTitle>Quick Stats</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Member Since</span>
                   <span className="font-medium">Oct 2024</span>
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Applications</span>
                   <span className="font-medium">0</span>
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Won</span>
-                  <Badge variant="default" className="bg-success">
-                    <Award className="w-3 h-3 mr-1" />
-                    $0
-                  </Badge>
+                  <Badge className="bg-success text-success-foreground">$0</Badge>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your current password and choose a new one
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleChangePassword}>Change Password</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Email Address</DialogTitle>
+            <DialogDescription>
+              Enter your password and new email address
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="passwordForEmail">Current Password</Label>
+              <Input
+                id="passwordForEmail"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newEmailInput">New Email Address</Label>
+              <Input
+                id="newEmailInput"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleChangeEmail}>Change Email</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your account
+              and remove all your data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
