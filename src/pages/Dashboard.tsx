@@ -3,13 +3,18 @@ import { Target, DollarSign, Clock, FileText, Sparkles, Search, Grid, List } fro
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { ScholarshipCard } from '@/components/dashboard/ScholarshipCard';
+import { FinancialImpactWidget } from '@/components/dashboard/FinancialImpactWidget';
+import { QuickActionsWidget } from '@/components/dashboard/QuickActionsWidget';
+import { ActivityFeedWidget } from '@/components/dashboard/ActivityFeedWidget';
+import { PriorityAlertsSection } from '@/components/dashboard/PriorityAlertsSection';
+import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useScholarships } from '@/hooks/useScholarships';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency, sortScholarships, filterScholarshipsByTab } from '@/utils/scholarshipUtils';
+import { formatCurrency, sortScholarships, filterScholarshipsByTab, calculateDaysUntilDeadline } from '@/utils/scholarshipUtils';
 import { SortOption, FilterTab, ViewMode } from '@/types/scholarship';
 import {
   Select,
@@ -79,6 +84,13 @@ const Dashboard = () => {
 
   const hasMoreToLoad = displayedScholarships.length < filteredAndSortedScholarships.length;
 
+  const urgentScholarships = useMemo(() => {
+    return scholarships.filter(s => {
+      const daysUntil = calculateDaysUntilDeadline(s.deadline);
+      return daysUntil < 7 && daysUntil >= 0;
+    });
+  }, [scholarships]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -99,12 +111,15 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 lg:pb-8">
       <DashboardHeader />
 
       <main className="container py-8">
-        {/* Hero Section */}
-        <div className="mb-8 rounded-xl bg-gradient-to-r from-primary/15 via-primary/8 to-background p-8 border border-primary/20">
+        <div className="flex gap-8">
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          {/* Hero Section */}
+          <div className="mb-8 rounded-xl bg-gradient-to-r from-primary/15 via-primary/8 to-background p-8 border border-primary/20">
           <h1 className="mb-2 text-3xl font-bold text-foreground">
             {getGreeting()}, {getUserName()}! 👋
           </h1>
@@ -118,8 +133,8 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Stats Row */}
-        <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Stats Row */}
+          <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             icon={Target}
             value={stats.opportunities_matched}
@@ -144,10 +159,13 @@ const Dashboard = () => {
             label="In Progress"
             iconColor="text-info"
           />
-        </div>
+          </div>
 
-        {/* Discovery Status */}
-        {discoveryStatus === 'processing' && (
+          {/* Priority Alerts */}
+          <PriorityAlertsSection urgentScholarships={urgentScholarships} />
+
+          {/* Discovery Status */}
+          {discoveryStatus === 'processing' && (
           <div className="mb-8 animate-pulse rounded-xl border-2 border-primary/50 bg-gradient-to-r from-primary/10 to-transparent p-6">
             <div className="flex items-center gap-4">
               <Sparkles className="h-8 w-8 animate-spin text-primary" />
@@ -165,10 +183,10 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-        )}
+          )}
 
-        {/* Matched Opportunities Section */}
-        <div className="space-y-6">
+          {/* Matched Opportunities Section */}
+          <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">Your Opportunities</h2>
@@ -276,8 +294,20 @@ const Dashboard = () => {
               </Button>
             </div>
           )}
+          </div>
+        </div>
+
+        {/* Right Sidebar - Desktop Only */}
+        <aside className="hidden xl:block w-80 space-y-6 shrink-0">
+          <FinancialImpactWidget stats={stats} />
+          <QuickActionsWidget />
+          <ActivityFeedWidget />
+        </aside>
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 };
