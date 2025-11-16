@@ -60,13 +60,111 @@ class ApiService {
     });
   }
 
+  // Application Management
+  
   // Track application start
-  async startApplication(userId: string, scholarshipId: string): Promise<void> {
+  async startApplication(userId: string, scholarshipId: string): Promise<{ application_id: string }> {
     return this.fetchWithAuth('/api/applications/start', {
       method: 'POST',
       body: JSON.stringify({ user_id: userId, scholarship_id: scholarshipId }),
     });
   }
+
+  // Save application draft (auto-save)
+  async saveDraft(
+    userId: string,
+    scholarshipId: string,
+    draftData: Partial<ApplicationDraft>
+  ): Promise<{ application_id: string; last_saved: string }> {
+    return this.fetchWithAuth('/api/applications/draft/save', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: userId,
+        scholarship_id: scholarshipId,
+        ...draftData,
+      }),
+    });
+  }
+
+  // Get application draft
+  async getDraft(userId: string, scholarshipId: string): Promise<{ exists: boolean; draft: ApplicationDraft | null }> {
+    return this.fetchWithAuth(`/api/applications/draft/${userId}/${scholarshipId}`);
+  }
+
+  // Submit final application
+  async submitApplication(submissionData: any): Promise<{ confirmation_number: string; application_id: string }> {
+    return this.fetchWithAuth('/api/applications/submit', {
+      method: 'POST',
+      body: JSON.stringify(submissionData),
+    });
+  }
+
+  // Upload document
+  async uploadDocument(
+    file: File,
+    userId: string,
+    scholarshipId: string,
+    documentType: string
+  ): Promise<{ document: DocumentData }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('user_id', userId);
+    formData.append('scholarship_id', scholarshipId);
+    formData.append('document_type', documentType);
+
+    const response = await fetch(`${API_BASE_URL}/api/applications/document/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload document');
+    }
+
+    return response.json();
+  }
+
+  // Save essay
+  async saveEssay(
+    userId: string,
+    scholarshipId: string,
+    prompt: string,
+    content: string,
+    wordCount: number
+  ): Promise<void> {
+    return this.fetchWithAuth('/api/applications/essay/save', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: userId,
+        scholarship_id: scholarshipId,
+        prompt,
+        content,
+        word_count: wordCount,
+      }),
+    });
+  }
+
+  // Get all user applications
+  async getUserApplications(userId: string, status?: string): Promise<{ applications: ApplicationSubmission[]; stats: any }> {
+    const url = status 
+      ? `/api/applications/user/${userId}?status=${status}`
+      : `/api/applications/user/${userId}`;
+    return this.fetchWithAuth(url);
+  }
+
+  // Get specific application
+  async getApplication(applicationId: string): Promise<{ application: ApplicationSubmission }> {
+    return this.fetchWithAuth(`/api/applications/${applicationId}`);
+  }
+
+  // Delete application draft
+  async deleteApplication(applicationId: string): Promise<void> {
+    return this.fetchWithAuth(`/api/applications/${applicationId}`, {
+      method: 'DELETE',
+    });
+  }
 }
+
+import type { ApplicationDraft, DocumentData, ApplicationSubmission } from '@/types/scholarship';
 
 export const apiService = new ApiService();

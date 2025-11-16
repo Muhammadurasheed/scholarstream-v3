@@ -88,3 +88,91 @@ export interface DashboardStats {
 export type ViewMode = 'grid' | 'list';
 export type SortOption = 'best_match' | 'deadline' | 'amount' | 'time' | 'recent';
 export type FilterTab = 'all' | 'high_priority' | 'closing_soon' | 'high_value' | 'best_match';
+
+// Application Management Types
+export type ApplicationStatus = 'draft' | 'submitted' | 'under_review' | 'finalist' | 'awarded' | 'declined' | 'expired';
+
+export interface PersonalInfoData {
+  full_name: string;
+  preferred_name?: string;
+  email: string;
+  phone: string;
+  date_of_birth?: string;
+  gender?: string;
+  mailing_address: Record<string, string>;
+  permanent_address?: Record<string, string>;
+  school_name: string;
+  student_id?: string;
+  grade_level: string;
+  major?: string;
+  minor?: string;
+  expected_graduation?: string;
+  gpa?: number;
+  gpa_scale: string;
+  citizenship_status?: string;
+  ethnicity: string[];
+}
+
+export interface DocumentData {
+  document_type: string;
+  file_name: string;
+  file_url: string;
+  cloudinary_public_id: string;
+  uploaded_at: string;
+  file_size?: number;
+}
+
+export interface EssayData {
+  prompt: string;
+  content: string;
+  word_count: number;
+  last_edited: string;
+}
+
+export interface RecommenderData {
+  name: string;
+  email: string;
+  relationship: string;
+  subject_context?: string;
+  phone?: string;
+  status: 'not_requested' | 'requested' | 'agreed' | 'submitted' | 'declined';
+  requested_at?: string;
+  submitted_at?: string;
+  letter_url?: string;
+}
+
+export interface ApplicationDraft {
+  application_id: string;
+  user_id: string;
+  scholarship_id: string;
+  status: ApplicationStatus;
+  current_step: number;
+  progress_percentage: number;
+  personal_info?: PersonalInfoData;
+  documents: DocumentData[];
+  essays: EssayData[];
+  recommenders: RecommenderData[];
+  additional_answers: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  last_saved: string;
+}
+
+export interface ApplicationSubmission {
+  application_id: string;
+  user_id: string;
+  scholarship_id: string;
+  scholarship_name: string;
+  scholarship_amount: number;
+  status: ApplicationStatus;
+  confirmation_number: string;
+  personal_info: PersonalInfoData;
+  documents: DocumentData[];
+  essays: EssayData[];
+  recommenders: RecommenderData[];
+  additional_answers: Record<string, any>;
+  submitted_at: string;
+  decision_date?: string;
+  award_amount?: number;
+  notes?: string;
+}
