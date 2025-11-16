@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     firebase_client_id: str = Field(..., env="FIREBASE_CLIENT_ID")
     firebase_auth_uri: str = Field(default="https://accounts.google.com/o/oauth2/auth", env="FIREBASE_AUTH_URI")
     firebase_token_uri: str = Field(default="https://oauth2.googleapis.com/token", env="FIREBASE_TOKEN_URI")
-    firebase_auth_provider_cert_url: str = Field(default="https://www.googleapis.com/oauth2/v1/certs", env="FIREBASE_AUTH_PROVIDER_X509_CERT_URL")
-    firebase_client_cert_url: str = Field(..., env="FIREBASE_CLIENT_X509_CERT_URL")
+    firebase_auth_provider_x509_cert_url: str = Field(default="https://www.googleapis.com/oauth2/v1/certs", env="FIREBASE_AUTH_PROVIDER_X509_CERT_URL")
+    firebase_client_x509_cert_url: str = Field(..., env="FIREBASE_CLIENT_X509_CERT_URL")
     
     # Google Gemini AI
     gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
@@ -77,8 +77,8 @@ class Settings(BaseSettings):
             "client_id": self.firebase_client_id,
             "auth_uri": self.firebase_auth_uri,
             "token_uri": self.firebase_token_uri,
-            "auth_provider_x509_cert_url": self.firebase_auth_provider_cert_url,
-            "client_x509_cert_url": self.firebase_client_cert_url,
+            "auth_provider_x509_cert_url": self.firebase_auth_provider_x509_cert_url,
+            "client_x509_cert_url": self.firebase_client_x509_cert_url,
         }
 
 
