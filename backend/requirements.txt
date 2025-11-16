@@ -21,6 +21,9 @@ lxml==5.3.0
 selenium==4.27.1
 requests==2.32.3
 
+# Task Scheduling (for background jobs)
+apscheduler==3.10.4
+
 # Upstash Redis (Serverless Redis via HTTP)
 upstash-redis==0.15.0
 
