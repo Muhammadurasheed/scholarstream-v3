@@ -127,6 +127,147 @@ class StartApplicationRequest(BaseModel):
     scholarship_id: str = Field(..., min_length=1)
 
 
+# Application Management Models
+ApplicationStatus = Literal["draft", "submitted", "under_review", "finalist", "awarded", "declined", "expired"]
+
+
+class PersonalInfoData(BaseModel):
+    """Personal information section of application"""
+    full_name: str
+    preferred_name: Optional[str] = None
+    email: str
+    phone: str
+    date_of_birth: Optional[str] = None
+    gender: Optional[str] = None
+    mailing_address: Dict[str, str] = Field(default_factory=dict)
+    permanent_address: Optional[Dict[str, str]] = None
+    school_name: str
+    student_id: Optional[str] = None
+    grade_level: str
+    major: Optional[str] = None
+    minor: Optional[str] = None
+    expected_graduation: Optional[str] = None
+    gpa: Optional[float] = None
+    gpa_scale: str = "4.0"
+    citizenship_status: Optional[str] = None
+    ethnicity: List[str] = Field(default_factory=list)
+
+
+class DocumentData(BaseModel):
+    """Document upload data"""
+    document_type: str
+    file_name: str
+    file_url: str
+    cloudinary_public_id: str
+    uploaded_at: str
+    file_size: Optional[int] = None
+
+
+class EssayData(BaseModel):
+    """Essay/short answer data"""
+    prompt: str
+    content: str
+    word_count: int
+    last_edited: str
+
+
+class RecommenderData(BaseModel):
+    """Recommendation letter tracking"""
+    name: str
+    email: str
+    relationship: str
+    subject_context: Optional[str] = None
+    phone: Optional[str] = None
+    status: Literal["not_requested", "requested", "agreed", "submitted", "declined"]
+    requested_at: Optional[str] = None
+    submitted_at: Optional[str] = None
+    letter_url: Optional[str] = None
+
+
+class ApplicationDraft(BaseModel):
+    """Draft application data (auto-saved)"""
+    application_id: str
+    user_id: str
+    scholarship_id: str
+    status: ApplicationStatus = "draft"
+    current_step: int = 1
+    progress_percentage: float = 0.0
+    personal_info: Optional[PersonalInfoData] = None
+    documents: List[DocumentData] = Field(default_factory=list)
+    essays: List[EssayData] = Field(default_factory=list)
+    recommenders: List[RecommenderData] = Field(default_factory=list)
+    additional_answers: Dict[str, Any] = Field(default_factory=dict)
+    created_at: str
+    updated_at: str
+    last_saved: str
+
+
+class ApplicationSubmission(BaseModel):
+    """Complete submitted application"""
+    application_id: str
+    user_id: str
+    scholarship_id: str
+    scholarship_name: str
+    scholarship_amount: float
+    status: ApplicationStatus = "submitted"
+    confirmation_number: str
+    personal_info: PersonalInfoData
+    documents: List[DocumentData]
+    essays: List[EssayData]
+    recommenders: List[RecommenderData]
+    additional_answers: Dict[str, Any] = Field(default_factory=dict)
+    submitted_at: str
+    decision_date: Optional[str] = None
+    award_amount: Optional[float] = None
+    notes: Optional[str] = None
+
+
+# API Request Models
+class SaveDraftRequest(BaseModel):
+    """Request to save application draft"""
+    user_id: str = Field(..., min_length=1)
+    scholarship_id: str = Field(..., min_length=1)
+    current_step: int = Field(..., ge=1, le=6)
+    progress_percentage: float = Field(..., ge=0, le=100)
+    personal_info: Optional[PersonalInfoData] = None
+    documents: Optional[List[DocumentData]] = None
+    essays: Optional[List[EssayData]] = None
+    recommenders: Optional[List[RecommenderData]] = None
+    additional_answers: Optional[Dict[str, Any]] = None
+
+
+class SubmitApplicationRequest(BaseModel):
+    """Request to submit final application"""
+    user_id: str = Field(..., min_length=1)
+    scholarship_id: str = Field(..., min_length=1)
+    scholarship_name: str
+    scholarship_amount: float
+    personal_info: PersonalInfoData
+    documents: List[DocumentData]
+    essays: List[EssayData]
+    recommenders: List[RecommenderData]
+    additional_answers: Dict[str, Any] = Field(default_factory=dict)
+    certifications: Dict[str, bool] = Field(default_factory=dict)
+
+
+class UploadDocumentRequest(BaseModel):
+    """Request to upload document to Cloudinary"""
+    user_id: str
+    scholarship_id: str
+    document_type: str
+    file_data: str  # Base64 encoded file
+    file_name: str
+
+
+class SaveEssayRequest(BaseModel):
+    """Request to save essay draft"""
+    user_id: str
+    scholarship_id: str
+    prompt: str
+    content: str
+    word_count: int
+
+
 class ErrorResponse(BaseModel):
     """Standard error response format"""
     error: str
