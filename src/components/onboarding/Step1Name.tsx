@@ -46,7 +46,7 @@ const Step1Name: React.FC<Step1Props> = ({ data, onNext }) => {
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Let's start simple. What's your name?
         </h1>
-        <p className="text-base text-muted-foreground">
+        <p className="text-base text-foreground/70">
           We'll use this to personalize your experience
         </p>
       </div>

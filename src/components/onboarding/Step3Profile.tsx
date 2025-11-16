@@ -48,10 +48,10 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Tell us about your academic performance
         </h1>
-        <p className="text-base text-muted-foreground">
+        <p className="text-base text-foreground/70">
           This helps us match you with merit-based opportunities
         </p>
-        <p className="text-sm font-medium text-warning">
+        <p className="text-sm font-semibold text-warning">
           All fields are optional - you can update these later
         </p>
       </div>
@@ -73,7 +73,7 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
             step={0.1}
             className="w-full"
           />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground/60">
             Don't worry if you're not sure - you can update this later
           </p>
         </div>
@@ -82,12 +82,12 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
         <div className="space-y-2">
           <Label className="text-foreground font-semibold">Major / Intended Major</Label>
           <Select value={major} onValueChange={setMajor}>
-            <SelectTrigger className="bg-background text-foreground border-2">
+            <SelectTrigger className="bg-background text-foreground border-2 font-medium">
               <SelectValue placeholder="Select your major" />
             </SelectTrigger>
-            <SelectContent className="bg-popover border-2">
+            <SelectContent className="bg-popover text-popover-foreground border-2">
               {majors.map((m) => (
-                <SelectItem key={m} value={m} className="text-foreground">
+                <SelectItem key={m} value={m} className="text-popover-foreground font-medium">
                   {m}
                 </SelectItem>
               ))}
@@ -99,12 +99,12 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
         <div className="space-y-2">
           <Label className="text-foreground font-semibold">Expected Graduation Year</Label>
           <Select value={graduationYear} onValueChange={setGraduationYear}>
-            <SelectTrigger className="bg-background text-foreground border-2">
+            <SelectTrigger className="bg-background text-foreground border-2 font-medium">
               <SelectValue placeholder="Select year" />
             </SelectTrigger>
-            <SelectContent className="bg-popover border-2">
+            <SelectContent className="bg-popover text-popover-foreground border-2">
               {[2025, 2026, 2027, 2028, 2029, 2030, 2031].map((year) => (
-                <SelectItem key={year} value={year.toString()} className="text-foreground">
+                <SelectItem key={year} value={year.toString()} className="text-popover-foreground font-medium">
                   {year}
                 </SelectItem>
               ))}
@@ -113,8 +113,8 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
         </div>
 
         {gpa >= 3.5 && (
-          <div className="p-4 bg-success/10 border border-success/20 rounded-lg animate-scale-in">
-            <p className="text-sm text-success-foreground">
+          <div className="p-4 bg-success/10 border-2 border-success/30 rounded-lg animate-scale-in">
+            <p className="text-sm text-foreground font-semibold">
               💡 Students with {gpa.toFixed(1)} GPA typically qualify for merit-based scholarships!
             </p>
           </div>

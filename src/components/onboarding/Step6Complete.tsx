@@ -105,21 +105,21 @@ const Step6Complete: React.FC<Step6Props> = ({ data, onComplete }) => {
       )}
 
       {!loading && (
-        <Card className="max-w-2xl mx-auto p-6 bg-primary/5 border-primary/20 animate-slide-up">
+        <Card className="max-w-2xl mx-auto p-6 bg-primary/5 border-2 border-primary/20 animate-slide-up">
           <Sparkles className="h-8 w-8 text-primary mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-3">What Happens Next?</h3>
+          <h3 className="text-lg font-semibold mb-3 text-foreground">What Happens Next?</h3>
           <ul className="space-y-2 text-sm text-left">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-              <span>We've matched you with personalized scholarships</span>
+              <span className="text-foreground">We've matched you with personalized scholarships</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-              <span>Your dashboard is ready with deadlines and priorities</span>
+              <span className="text-foreground">Your dashboard is ready with deadlines and priorities</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-              <span>AI assistant is standing by to help with applications</span>
+              <span className="text-foreground">AI assistant is standing by to help with applications</span>
             </li>
           </ul>
         </Card>

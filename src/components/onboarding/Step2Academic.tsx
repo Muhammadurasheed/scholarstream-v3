@@ -49,7 +49,7 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Where are you in your academic journey?
         </h1>
-        <p className="text-base text-muted-foreground">
+        <p className="text-base text-foreground/70">
           This helps us find the right opportunities for you
         </p>
       </div>
@@ -103,15 +103,15 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
       {showSchool && (
         <div className="max-w-md mx-auto space-y-4 animate-slide-up">
           <div className="space-y-2">
-            <Label htmlFor="school" className="text-foreground">Which school do you attend? (Optional)</Label>
+            <Label htmlFor="school" className="text-foreground font-medium">Which school do you attend? (Optional)</Label>
             <Input
               id="school"
               placeholder="e.g., University of California, Berkeley"
               value={school}
               onChange={(e) => setSchool(e.target.value)}
-              className="text-foreground"
+              className="text-foreground bg-background"
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground/60">
               You can skip this if you prefer not to share
             </p>
           </div>
