@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
+import OpportunityDetail from "./pages/OpportunityDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,7 +49,7 @@ const App = () => (
                 path="/opportunity/:id" 
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <OpportunityDetail />
                   </ProtectedRoute>
                 } 
               />
