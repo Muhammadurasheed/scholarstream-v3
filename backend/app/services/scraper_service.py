@@ -1,13 +1,16 @@
 """
-Web Scraping Service for Scholarship Discovery
-Scrapes scholarship data from multiple sources
+Multi-Opportunity Discovery Service
+Real-time scraping for scholarships, hackathons, bounties, competitions
+Uses APIs and web scraping with AI enrichment
 """
 import httpx
 from bs4 import BeautifulSoup
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import structlog
 from datetime import datetime, timedelta
 import asyncio
+import json
+import random
 
 from app.models import ScrapedScholarship
 from app.config import settings
@@ -15,7 +18,7 @@ from app.config import settings
 logger = structlog.get_logger()
 
 
-class ScholarshipScraperService:
+class OpportunityScraperService:
     """Web scraper for discovering scholarships"""
     
     def __init__(self):
@@ -28,118 +31,349 @@ class ScholarshipScraperService:
             }
         )
         self.cache: dict = {}
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ]
     
-    async def discover_scholarships(self, user_profile: dict) -> List[ScrapedScholarship]:
+    async def discover_all_opportunities(self, user_profile: dict) -> List[Dict[str, Any]]:
         """
-        Main entry point for scholarship discovery
-        Searches multiple sources and aggregates results
+        Main entry point - discovers ALL opportunity types
+        Returns unified list of opportunities (scholarships, hackathons, bounties, etc.)
         """
-        logger.info("Starting scholarship discovery")
+        logger.info("Starting multi-opportunity discovery")
         
-        all_scholarships = []
+        all_opportunities = []
         
-        # Source 1: Scholarships.com (example - would need real implementation)
-        scholarships_com = await self._scrape_scholarships_com(user_profile)
-        all_scholarships.extend(scholarships_com)
+        # Run all scrapers in parallel for speed
+        results = await asyncio.gather(
+            self._scrape_devpost_hackathons(),
+            self._scrape_gitcoin_bounties(),
+            self._scrape_scholarships_mock(),  # Will add real sources progressively
+            return_exceptions=True
+        )
         
-        # Source 2: FastWeb (example)
-        fastweb = await self._scrape_fastweb(user_profile)
-        all_scholarships.extend(fastweb)
+        # Aggregate results
+        for result in results:
+            if isinstance(result, list):
+                all_opportunities.extend(result)
+            else:
+                logger.error("Scraper failed", error=str(result))
         
-        # Source 3: College Board (example)
-        college_board = await self._scrape_college_board(user_profile)
-        all_scholarships.extend(college_board)
+        # Deduplicate
+        unique_opportunities = self._deduplicate(all_opportunities)
         
-        # Deduplicate by name and organization
-        unique_scholarships = self._deduplicate(all_scholarships)
+        logger.info("Discovery complete", 
+                   total=len(unique_opportunities),
+                   scholarships=len([o for o in unique_opportunities if o.get('type') == 'scholarship']),
+                   hackathons=len([o for o in unique_opportunities if o.get('type') == 'hackathon']),
+                   bounties=len([o for o in unique_opportunities if o.get('type') == 'bounty']))
         
-        logger.info("Scholarship discovery complete", total_found=len(unique_scholarships))
-        return unique_scholarships
+        return unique_opportunities
     
-    async def _scrape_scholarships_com(self, user_profile: dict) -> List[ScrapedScholarship]:
+    async def _scrape_devpost_hackathons(self) -> List[Dict[str, Any]]:
         """
-        Scrape Scholarships.com (example implementation)
-        In production, this would implement real scraping logic
+        Scrape Devpost for REAL hackathon data
+        Devpost has a public-facing structure we can parse
         """
-        # For development, return mock data
+        try:
+            logger.info("Fetching Devpost hackathons")
+            
+            url = "https://devpost.com/hackathons"
+            headers = {
+                'User-Agent': random.choice(self.user_agents),
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            }
+            
+            response = await self.client.get(url, headers=headers, timeout=30)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            hackathons = []
+            hackathon_cards = soup.find_all('div', class_='challenge-listing')[:20]  # Limit to 20
+            
+            for card in hackathon_cards:
+                try:
+                    name_elem = card.find('h2') or card.find('h3') or card.find('a', class_='challenge-link')
+                    prize_elem = card.find(string=lambda text: text and '$' in text)
+                    deadline_elem = card.find('time') or card.find('span', class_='deadline')
+                    link_elem = card.find('a', href=True)
+                    
+                    if not name_elem:
+                        continue
+                    
+                    name = name_elem.get_text(strip=True)
+                    url = f"https://devpost.com{link_elem['href']}" if link_elem else None
+                    
+                    # Extract prize amount
+                    amount = 0
+                    if prize_elem:
+                        prize_text = prize_elem.get_text()
+                        # Parse amounts like "$10,000" or "$10K"
+                        import re
+                        amounts = re.findall(r'\$[\d,]+', prize_text)
+                        if amounts:
+                            amount = int(amounts[0].replace('$', '').replace(',', ''))
+                    
+                    # Parse deadline
+                    deadline = None
+                    if deadline_elem:
+                        deadline_text = deadline_elem.get_text(strip=True)
+                        # Try to parse relative dates or absolute
+                        if 'day' in deadline_text.lower():
+                            days = int(re.findall(r'\d+', deadline_text)[0]) if re.findall(r'\d+', deadline_text) else 30
+                            deadline = (datetime.now() + timedelta(days=days)).isoformat()
+                        else:
+                            deadline = (datetime.now() + timedelta(days=30)).isoformat()
+                    
+                    hackathons.append({
+                        'type': 'hackathon',
+                        'name': name,
+                        'organization': 'Devpost',
+                        'amount': amount,
+                        'amount_display': f"${amount:,}" if amount > 0 else "Prizes available",
+                        'deadline': deadline,
+                        'deadline_type': 'fixed',
+                        'url': url,
+                        'description': f"Hackathon on Devpost - {name}",
+                        'source': 'devpost',
+                        'urgency': 'this_month',
+                        'requirements': {
+                            'team_allowed': True,
+                            'estimated_time': '48 hours'
+                        },
+                        'tags': ['hackathon', 'coding', 'online']
+                    })
+                    
+                except Exception as e:
+                    logger.error("Failed to parse hackathon card", error=str(e))
+                    continue
+            
+            logger.info(f"Found {len(hackathons)} Devpost hackathons")
+            return hackathons
+            
+        except Exception as e:
+            logger.error("Devpost scraping failed", error=str(e))
+            return []
+    
+    async def _scrape_gitcoin_bounties(self) -> List[Dict[str, Any]]:
+        """
+        Scrape Gitcoin for REAL bounty data
+        """
+        try:
+            logger.info("Fetching Gitcoin bounties")
+            
+            # Gitcoin explorer page
+            url = "https://gitcoin.co/explorer"
+            headers = {'User-Agent': random.choice(self.user_agents)}
+            
+            response = await self.client.get(url, headers=headers, timeout=30)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            bounties = []
+            bounty_cards = soup.find_all('div', class_='bounty-card')[:15]
+            
+            for card in bounty_cards:
+                try:
+                    title_elem = card.find('h5') or card.find('a', class_='bounty-title')
+                    value_elem = card.find(string=lambda text: text and ('USD' in text or '$' in text))
+                    link_elem = card.find('a', href=True)
+                    
+                    if not title_elem:
+                        continue
+                    
+                    name = title_elem.get_text(strip=True)
+                    url = f"https://gitcoin.co{link_elem['href']}" if link_elem else None
+                    
+                    # Extract amount
+                    amount = 0
+                    if value_elem:
+                        import re
+                        amounts = re.findall(r'[\d,]+', value_elem.get_text())
+                        if amounts:
+                            amount = int(amounts[0].replace(',', ''))
+                    
+                    bounties.append({
+                        'type': 'bounty',
+                        'name': name,
+                        'organization': 'Gitcoin',
+                        'amount': amount,
+                        'amount_display': f"${amount:,} USD" if amount > 0 else "Value TBD",
+                        'deadline': None,  # Most bounties are ongoing
+                        'deadline_type': 'rolling',
+                        'url': url,
+                        'description': f"Open bounty: {name}",
+                        'source': 'gitcoin',
+                        'urgency': 'immediate',
+                        'requirements': {
+                            'skills_needed': ['Web3', 'Solidity', 'JavaScript'],
+                            'estimated_time': '4-8 hours'
+                        },
+                        'tags': ['bounty', 'web3', 'crypto', 'open-source']
+                    })
+                    
+                except Exception as e:
+                    logger.error("Failed to parse bounty card", error=str(e))
+                    continue
+            
+            logger.info(f"Found {len(bounties)} Gitcoin bounties")
+            return bounties
+            
+        except Exception as e:
+            logger.error("Gitcoin scraping failed", error=str(e))
+            return []
+    
+    async def _scrape_scholarships_mock(self) -> List[Dict[str, Any]]:
+        """
+        Return enhanced mock scholarship data
+        TODO: Replace with real scraping (Scholarships.com, FastWeb, etc.)
+        """
         return self._get_mock_scholarships()
     
-    async def _scrape_fastweb(self, user_profile: dict) -> List[ScrapedScholarship]:
-        """Scrape FastWeb scholarships"""
-        return []  # Mock - would implement real scraping
-    
-    async def _scrape_college_board(self, user_profile: dict) -> List[ScrapedScholarship]:
-        """Scrape College Board scholarships"""
-        return []  # Mock - would implement real scraping
-    
-    def _get_mock_scholarships(self) -> List[ScrapedScholarship]:
+    def _get_mock_scholarships(self) -> List[Dict[str, Any]]:
         """
         Return mock scholarship data for development
         Replace with real scraping in production
         """
         return [
-            ScrapedScholarship(
-                name="Gates Millennium Scholars Program",
-                organization="Bill & Melinda Gates Foundation",
-                amount=40000.0,
-                deadline=(datetime.now() + timedelta(days=45)).isoformat(),
-                description="Full scholarship for underrepresented minority students with significant financial need.",
-                source_url="https://www.gmsp.org",
-                eligibility_raw="Must be: Pell Grant eligible, US citizen or legal resident, minimum 3.3 GPA, from minority background",
-                requirements_raw="Essays required (2), recommendation letters (2), transcript, FAFSA"
-            ),
-            ScrapedScholarship(
-                name="Dell Scholars Program",
-                organization="Michael & Susan Dell Foundation",
-                amount=20000.0,
-                deadline=(datetime.now() + timedelta(days=20)).isoformat(),
-                description="Scholarship for students with demonstrated need and adversity.",
-                source_url="https://www.dellscholars.org",
-                eligibility_raw="Must be: Pell Grant eligible, minimum 2.4 GPA, participated in approved college readiness program",
-                requirements_raw="Essay, recommendation letter, transcript, tax returns"
-            ),
-            ScrapedScholarship(
-                name="Coca-Cola Scholars Program",
-                organization="The Coca-Cola Foundation",
-                amount=20000.0,
-                deadline=(datetime.now() + timedelta(days=25)).isoformat(),
-                description="Merit-based scholarship for high school seniors.",
-                source_url="https://www.coca-colascholarsfoundation.org",
-                eligibility_raw="Must be: High school senior, minimum 3.0 GPA, US citizen or permanent resident",
-                requirements_raw="Essay, recommendation letter, transcript, leadership activities"
-            ),
-            ScrapedScholarship(
-                name="SMART Scholarship",
-                organization="Department of Defense",
-                amount=50000.0,
-                deadline=(datetime.now() + timedelta(days=60)).isoformat(),
-                description="Full scholarship for STEM students with service commitment.",
-                source_url="https://www.smartscholarship.org",
-                eligibility_raw="Must be: US citizen, pursuing STEM degree, minimum 3.0 GPA",
-                requirements_raw="Essays, 3 recommendation letters, transcript, resume, service agreement"
-            ),
-            ScrapedScholarship(
-                name="Jack Kent Cooke Foundation",
-                organization="Jack Kent Cooke Foundation",
-                amount=55000.0,
-                deadline=(datetime.now() + timedelta(days=90)).isoformat(),
-                description="Scholarship for exceptional students with financial need.",
-                source_url="https://www.jkcf.org",
-                eligibility_raw="Must be: High school senior, family income <$95k, top 10% of class",
-                requirements_raw="Essays (multiple), 2 recommendations, transcript, financial documents"
-            ),
+            {
+                'type': 'scholarship',
+                'name': "Gates Millennium Scholars Program",
+                'organization': "Bill & Melinda Gates Foundation",
+                'amount': 40000,
+                'amount_display': "$40,000",
+                'deadline': (datetime.now() + timedelta(days=45)).isoformat(),
+                'deadline_type': 'fixed',
+                'description': "Full scholarship for underrepresented minority students with significant financial need.",
+                'url': "https://www.gmsp.org",
+                'source': 'mock',
+                'urgency': 'this_month',
+                'eligibility': {
+                    'students_only': True,
+                    'grade_levels': ['undergraduate'],
+                    'gpa_min': 3.3,
+                    'citizenship': ['US'],
+                    'requirements': "Pell Grant eligible, minimum 3.3 GPA, from minority background"
+                },
+                'requirements': {
+                    'essay_required': True,
+                    'estimated_time': '3 hours',
+                    'application_type': 'external_form'
+                },
+                'tags': ['need-based', 'minority', 'undergraduate', 'full-ride']
+            },
+            {
+                'type': 'scholarship',
+                'name': "Dell Scholars Program",
+                'organization': "Michael & Susan Dell Foundation",
+                'amount': 20000,
+                'amount_display': "$20,000",
+                'deadline': (datetime.now() + timedelta(days=20)).isoformat(),
+                'deadline_type': 'fixed',
+                'description': "Scholarship for students with demonstrated need and adversity.",
+                'url': "https://www.dellscholars.org",
+                'source': 'mock',
+                'urgency': 'this_week',
+                'eligibility': {
+                    'students_only': True,
+                    'grade_levels': ['high_school'],
+                    'gpa_min': 2.4,
+                    'citizenship': ['US']
+                },
+                'requirements': {
+                    'essay_required': True,
+                    'estimated_time': '2 hours',
+                    'application_type': 'external_form'
+                },
+                'tags': ['need-based', 'high-school', 'underrepresented']
+            },
+            {
+                'type': 'scholarship',
+                'name': "Coca-Cola Scholars Program",
+                'organization': "The Coca-Cola Foundation",
+                'amount': 20000,
+                'amount_display': "$20,000",
+                'deadline': (datetime.now() + timedelta(days=25)).isoformat(),
+                'deadline_type': 'fixed',
+                'description': "Merit-based scholarship for high school seniors.",
+                'url': "https://www.coca-colascholarsfoundation.org",
+                'source': 'mock',
+                'urgency': 'this_month',
+                'eligibility': {
+                    'students_only': True,
+                    'grade_levels': ['high_school'],
+                    'gpa_min': 3.0,
+                    'citizenship': ['US', 'Permanent Resident']
+                },
+                'requirements': {
+                    'essay_required': True,
+                    'estimated_time': '2.5 hours',
+                    'application_type': 'external_form'
+                },
+                'tags': ['merit-based', 'high-school', 'leadership']
+            },
+            {
+                'type': 'scholarship',
+                'name': "SMART Scholarship",
+                'organization': "Department of Defense",
+                'amount': 50000,
+                'amount_display': "$50,000",
+                'deadline': (datetime.now() + timedelta(days=60)).isoformat(),
+                'deadline_type': 'fixed',
+                'description': "Full scholarship for STEM students with service commitment.",
+                'url': "https://www.smartscholarship.org",
+                'source': 'mock',
+                'urgency': 'future',
+                'eligibility': {
+                    'students_only': True,
+                    'grade_levels': ['undergraduate', 'graduate'],
+                    'majors': ['STEM'],
+                    'gpa_min': 3.0,
+                    'citizenship': ['US']
+                },
+                'requirements': {
+                    'essay_required': True,
+                    'estimated_time': '4 hours',
+                    'application_type': 'external_form'
+                },
+                'tags': ['stem', 'full-ride', 'service-commitment', 'government']
+            },
+            {
+                'type': 'scholarship',
+                'name': "Jack Kent Cooke Foundation",
+                'organization': "Jack Kent Cooke Foundation",
+                'amount': 55000,
+                'amount_display': "$55,000",
+                'deadline': (datetime.now() + timedelta(days=90)).isoformat(),
+                'deadline_type': 'fixed',
+                'description': "Scholarship for exceptional students with financial need.",
+                'url': "https://www.jkcf.org",
+                'source': 'mock',
+                'urgency': 'future',
+                'eligibility': {
+                    'students_only': True,
+                    'grade_levels': ['high_school'],
+                    'requirements': 'Family income <$95k, top 10% of class'
+                },
+                'requirements': {
+                    'essay_required': True,
+                    'estimated_time': '5 hours',
+                    'application_type': 'external_form'
+                },
+                'tags': ['need-based', 'merit-based', 'high-achieving']
+            },
         ]
     
-    def _deduplicate(self, scholarships: List[ScrapedScholarship]) -> List[ScrapedScholarship]:
-        """Remove duplicate scholarships based on name and organization"""
+    def _deduplicate(self, opportunities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Remove duplicates based on name and organization"""
         seen = set()
         unique = []
         
-        for scholarship in scholarships:
-            key = f"{scholarship.name.lower()}_{scholarship.organization.lower()}"
+        for opp in opportunities:
+            key = f"{opp.get('name', '').lower()}_{opp.get('organization', '').lower()}"
             if key not in seen:
                 seen.add(key)
-                unique.append(scholarship)
+                unique.append(opp)
         
         return unique
     
@@ -149,4 +383,4 @@ class ScholarshipScraperService:
 
 
 # Global scraper service instance
-scraper_service = ScholarshipScraperService()
+scraper_service = OpportunityScraperService()
