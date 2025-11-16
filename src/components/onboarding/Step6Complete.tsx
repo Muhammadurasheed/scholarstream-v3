@@ -51,7 +51,7 @@ const Step6Complete: React.FC<Step6Props> = ({ data, onComplete }) => {
           You're all set, {data.firstName}! 🎉
         </h1>
         {loading ? (
-          <p className="text-lg text-foreground/70 animate-pulse font-medium">
+          <p className="text-lg text-muted-foreground animate-pulse font-medium">
             {loadingMessage}
           </p>
         ) : (
@@ -66,11 +66,11 @@ const Step6Complete: React.FC<Step6Props> = ({ data, onComplete }) => {
           <h3 className="text-xl font-bold mb-4 text-foreground">Profile Summary</h3>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-foreground/70 font-medium">Name:</span>
+              <span className="text-muted-foreground font-medium">Name:</span>
               <span className="font-semibold text-foreground">{data.firstName} {data.lastName}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-border">
-              <span className="text-foreground/70 font-medium">Academic Status:</span>
+              <span className="text-muted-foreground font-medium">Academic Status:</span>
               <span className="font-semibold text-foreground capitalize">
                 {data.academicStatus.replace('-', ' ')}
                 {data.year && ` (${data.year})`}
@@ -78,25 +78,25 @@ const Step6Complete: React.FC<Step6Props> = ({ data, onComplete }) => {
             </div>
             {data.school && (
               <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-foreground/70 font-medium">School:</span>
+                <span className="text-muted-foreground font-medium">School:</span>
                 <span className="font-semibold text-foreground">{data.school}</span>
               </div>
             )}
             {data.major && (
               <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-foreground/70 font-medium">Major:</span>
+                <span className="text-muted-foreground font-medium">Major:</span>
                 <span className="font-semibold text-foreground">{data.major}</span>
               </div>
             )}
             {data.gpa && (
               <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-foreground/70 font-medium">GPA:</span>
+                <span className="text-muted-foreground font-medium">GPA:</span>
                 <span className="font-semibold text-foreground">{data.gpa.toFixed(1)}</span>
               </div>
             )}
             {data.interests.length > 0 && (
               <div className="flex justify-between py-2 border-b border-border">
-                <span className="text-foreground/70 font-medium">Interests:</span>
+                <span className="text-muted-foreground font-medium">Interests:</span>
                 <span className="font-semibold text-foreground">{data.interests.slice(0, 3).join(', ')}</span>
               </div>
             )}

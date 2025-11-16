@@ -58,7 +58,7 @@ const Step4Background: React.FC<Step4Props> = ({ data, onNext, onSkip }) => {
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           These questions help us find opportunities designed for students like you
         </h1>
-        <p className="text-lg text-foreground/70">
+        <p className="text-lg text-muted-foreground">
           All questions are completely optional and kept private
         </p>
       </div>
@@ -68,7 +68,7 @@ const Step4Background: React.FC<Step4Props> = ({ data, onNext, onSkip }) => {
           <Lock className="h-5 w-5 text-info mt-0.5 flex-shrink-0" />
           <div>
             <p className="font-semibold text-foreground">Your information is private and secure</p>
-            <p className="text-sm text-foreground/80 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Many scholarships are specifically for underrepresented students, and sharing this helps us find them.
             </p>
           </div>

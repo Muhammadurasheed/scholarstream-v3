@@ -70,7 +70,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Let's understand your financial needs and interests
         </h1>
-        <p className="text-lg text-foreground/70">
+        <p className="text-lg text-muted-foreground">
           This helps us find the perfect scholarships for you
         </p>
       </div>
@@ -79,7 +79,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
         {/* Financial Need */}
         <div className="space-y-4">
           <Label className="text-xl font-semibold">What's your estimated annual financial need?</Label>
-          <p className="text-sm text-foreground/70">
+          <p className="text-sm text-muted-foreground">
             How much do you need for tuition, housing, books, etc.?
           </p>
           
@@ -87,7 +87,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
             {!notSure && (
               <>
                 <div className="flex justify-between items-center">
-                  <span className="text-foreground/70 font-medium">Financial Need</span>
+                  <span className="text-muted-foreground font-medium">Financial Need</span>
                   <span className="text-2xl font-bold text-primary">
                     ${financialNeed.toLocaleString()}
                   </span>
@@ -121,7 +121,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
         {/* Interests */}
         <div className="space-y-4">
           <Label className="text-xl font-semibold">What are you passionate about?</Label>
-          <p className="text-sm text-foreground/70">
+          <p className="text-sm text-muted-foreground">
             This helps us find niche scholarships that match your unique profile
           </p>
 
