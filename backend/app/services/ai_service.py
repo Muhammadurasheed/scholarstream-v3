@@ -8,6 +8,14 @@ import json
 import asyncio
 import structlog
 from datetime import datetime, timedelta
+import hashlib
+
+try:
+    from upstash_redis import Redis
+    UPSTASH_AVAILABLE = True
+except ImportError:
+    UPSTASH_AVAILABLE = False
+    Redis = None
 
 from app.config import settings
 from app.models import (
@@ -28,22 +36,84 @@ class GeminiAIService:
     """Google Gemini AI integration for scholarship processing"""
     
     def __init__(self):
-        """Initialize Gemini AI"""
+        """Initialize Gemini AI with Upstash Redis support"""
         genai.configure(api_key=settings.gemini_api_key)
         self.model = genai.GenerativeModel(settings.gemini_model)
-        self.cache: Dict[str, tuple] = {}  # Simple in-memory cache
-        self.rate_limiter = self._init_rate_limiter()
-    
-    def _init_rate_limiter(self):
-        """Initialize rate limiting tracking"""
-        return {
+        
+        # Initialize Upstash Redis for rate limiting and caching
+        self.redis_client = None
+        if UPSTASH_AVAILABLE and settings.upstash_redis_rest_url and settings.upstash_redis_rest_token:
+            try:
+                self.redis_client = Redis(
+                    url=settings.upstash_redis_rest_url,
+                    token=settings.upstash_redis_rest_token
+                )
+                logger.info("Upstash Redis initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Upstash Redis: {e}. Falling back to in-memory caching.")
+                self.redis_client = None
+        else:
+            logger.warning("Upstash Redis not configured - using in-memory caching and rate limiting")
+        
+        # Fallback in-memory cache if Redis unavailable
+        self.memory_cache: Dict[str, tuple] = {}
+        
+        # Rate limiting configuration
+        self.rate_limit_key = "gemini_api_calls"
+        self.rate_limit_window = 3600  # 1 hour in seconds
+        self.max_calls_per_hour = settings.gemini_rate_limit_per_hour
+        
+        # In-memory rate limiter fallback
+        self.rate_limiter = {
             'count': 0,
             'window_start': datetime.now(),
             'limit': settings.gemini_rate_limit_per_hour
         }
+        
+        logger.info(
+            "Gemini AI Service initialized",
+            model=settings.gemini_model,
+            rate_limit=self.max_calls_per_hour,
+            redis_enabled=self.redis_client is not None
+        )
     
     def _check_rate_limit(self) -> bool:
-        """Check if we're within rate limits"""
+        """
+        Check if we're within rate limits
+        Uses Upstash Redis if available, falls back to in-memory tracking
+        """
+        if self.redis_client:
+            # Use Upstash Redis for distributed rate limiting
+            try:
+                current_calls = self.redis_client.get(self.rate_limit_key)
+                
+                if current_calls is None:
+                    # First call in this window
+                    self.redis_client.set(
+                        self.rate_limit_key,
+                        "1",
+                        ex=self.rate_limit_window
+                    )
+                    return True
+                
+                current_calls_int = int(current_calls)
+                if current_calls_int >= self.max_calls_per_hour:
+                    logger.warning(
+                        "Gemini rate limit exceeded (Redis)",
+                        current_calls=current_calls_int,
+                        max_calls=self.max_calls_per_hour
+                    )
+                    return False
+                
+                # Increment counter
+                self.redis_client.incr(self.rate_limit_key)
+                return True
+                
+            except Exception as e:
+                logger.error(f"Redis rate limit check failed: {e}. Using in-memory fallback.")
+                # Fall through to in-memory check
+        
+        # In-memory rate limiting fallback
         now = datetime.now()
         if (now - self.rate_limiter['window_start']) > timedelta(hours=1):
             # Reset window
@@ -51,7 +121,7 @@ class GeminiAIService:
             self.rate_limiter['window_start'] = now
         
         if self.rate_limiter['count'] >= self.rate_limiter['limit']:
-            logger.warning("Gemini rate limit exceeded")
+            logger.warning("Gemini rate limit exceeded (in-memory)")
             return False
         
         self.rate_limiter['count'] += 1
@@ -67,12 +137,11 @@ class GeminiAIService:
         Extract structured eligibility, requirements, and calculate match score
         """
         # Check cache first
-        cache_key = f"{scholarship.source_url}_{user_profile.name}"
-        if cache_key in self.cache:
-            cached_data, cached_time = self.cache[cache_key]
-            if (datetime.now() - cached_time) < timedelta(hours=settings.ai_enrichment_cache_ttl_hours):
-                logger.info("Using cached AI enrichment", source=scholarship.source_url)
-                return cached_data
+        cache_key = self._generate_cache_key(scholarship.source_url, user_profile.name)
+        cached_enrichment = self._get_cached_enrichment(cache_key)
+        if cached_enrichment:
+            logger.info("Using cached AI enrichment", source=scholarship.source_url)
+            return cached_enrichment
         
         # Check rate limit
         if not self._check_rate_limit():
@@ -87,7 +156,7 @@ class GeminiAIService:
             enriched_data = self._parse_ai_response(response.text)
             
             # Cache the result
-            self.cache[cache_key] = (enriched_data, datetime.now())
+            self._cache_enrichment(cache_key, enriched_data)
             
             logger.info("Scholarship enriched with AI", source=scholarship.source_url)
             return enriched_data
@@ -199,6 +268,56 @@ Respond with ONLY the JSON object, no markdown formatting or additional text."""
                 competition_level="Medium",
                 estimated_time="2-3 hours"
             )
+    
+    def _generate_cache_key(self, source_url: str, user_name: str) -> str:
+        """Generate a unique cache key for scholarship + user combination"""
+        key_string = f"{source_url}_{user_name}"
+        return hashlib.md5(key_string.encode()).hexdigest()
+    
+    def _get_cached_enrichment(self, cache_key: str) -> Optional[AIEnrichmentResponse]:
+        """Get cached AI enrichment result from Redis or memory"""
+        # Try Redis first
+        if self.redis_client:
+            try:
+                cached = self.redis_client.get(f"ai_enrichment:{cache_key}")
+                if cached:
+                    logger.info("Cache hit (Redis)", cache_key=cache_key)
+                    # Parse JSON string back to model
+                    data = json.loads(cached)
+                    return AIEnrichmentResponse(**data)
+            except Exception as e:
+                logger.error(f"Redis cache retrieval failed: {e}")
+        
+        # Fallback to in-memory cache
+        if cache_key in self.memory_cache:
+            cached_data, cached_time = self.memory_cache[cache_key]
+            cache_age_hours = (datetime.now() - cached_time).total_seconds() / 3600
+            if cache_age_hours < settings.ai_enrichment_cache_ttl_hours:
+                logger.info("Cache hit (memory)", cache_key=cache_key)
+                return cached_data
+        
+        return None
+    
+    def _cache_enrichment(self, cache_key: str, enrichment: AIEnrichmentResponse):
+        """Cache AI enrichment result to Redis and memory"""
+        # Store in Redis if available
+        if self.redis_client:
+            try:
+                cache_ttl_seconds = settings.ai_enrichment_cache_ttl_hours * 3600
+                # Convert to dict then to JSON for storage
+                enrichment_dict = enrichment.model_dump()
+                self.redis_client.set(
+                    f"ai_enrichment:{cache_key}",
+                    json.dumps(enrichment_dict),
+                    ex=int(cache_ttl_seconds)
+                )
+                logger.info("Cached in Redis", cache_key=cache_key, ttl_hours=settings.ai_enrichment_cache_ttl_hours)
+            except Exception as e:
+                logger.error(f"Redis cache storage failed: {e}")
+        
+        # Also store in memory cache as backup
+        self.memory_cache[cache_key] = (enrichment, datetime.now())
+        logger.info("Cached in memory", cache_key=cache_key)
     
     async def batch_enrich_scholarships(
         self,

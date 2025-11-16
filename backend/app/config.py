@@ -32,8 +32,9 @@ class Settings(BaseSettings):
     gemini_api_key: str = Field(..., env="GEMINI_API_KEY")
     gemini_model: str = Field(default="gemini-2.5-flash", env="GEMINI_MODEL")
     
-    # Redis Configuration
-    redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+    # Upstash Redis Configuration (HTTP-based serverless Redis)
+    upstash_redis_rest_url: str = Field(default="", env="UPSTASH_REDIS_REST_URL")
+    upstash_redis_rest_token: str = Field(default="", env="UPSTASH_REDIS_REST_TOKEN")
     
     # CORS Settings
     cors_origins: List[str] = Field(
