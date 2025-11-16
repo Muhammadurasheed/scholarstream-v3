@@ -70,7 +70,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
         <h1 className="text-2xl md:text-3xl font-bold text-foreground">
           Let's understand your financial needs and interests
         </h1>
-        <p className="text-base text-muted-foreground">
+        <p className="text-base text-foreground/70">
           This helps us find the perfect scholarships for you
         </p>
       </div>
@@ -79,7 +79,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
         {/* Financial Need */}
         <div className="space-y-4">
           <Label className="text-lg font-bold text-foreground">What's your estimated annual financial need?</Label>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground/70">
             How much do you need for tuition, housing, books, etc.?
           </p>
           
@@ -87,7 +87,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
             {!notSure && (
               <>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-medium">Financial Need</span>
+                  <span className="text-foreground/70 font-medium">Financial Need</span>
                   <span className="text-2xl font-bold text-primary">
                     ${financialNeed.toLocaleString()}
                   </span>
@@ -111,7 +111,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
                 onChange={(e) => setNotSure(e.target.checked)}
                 className="h-4 w-4 rounded border-border"
               />
-              <label htmlFor="notSure" className="text-sm text-foreground font-medium cursor-pointer">
+              <label htmlFor="notSure" className="text-sm text-foreground font-semibold cursor-pointer">
                 I'm not sure
               </label>
             </div>
@@ -121,7 +121,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
         {/* Interests */}
         <div className="space-y-4">
           <Label className="text-lg font-bold text-foreground">What are you passionate about?</Label>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground/70">
             This helps us find niche scholarships that match your unique profile
           </p>
 
@@ -133,7 +133,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
                 <Badge
                   key={interest}
                   variant={isSelected ? 'default' : 'outline'}
-                  className="cursor-pointer transition-all hover:scale-105 text-sm font-semibold border-2"
+                  className="cursor-pointer transition-all hover:scale-105 text-sm font-bold border-2"
                   onClick={() => toggleInterest(interest)}
                 >
                   {interest}
@@ -148,7 +148,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
               {selectedInterests
                 .filter(i => !predefinedInterests.includes(i))
                 .map((interest) => (
-                  <Badge key={interest} variant="secondary" className="gap-1 text-sm font-semibold">
+                  <Badge key={interest} variant="secondary" className="gap-1 text-sm font-bold">
                     {interest}
                     <X
                       className="h-3 w-3 cursor-pointer"
@@ -166,13 +166,13 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
               value={customInterest}
               onChange={(e) => setCustomInterest(e.target.value)}
               onKeyPress={handleKeyPress}
-              className="flex-1 text-foreground border-2"
+              className="flex-1 text-foreground bg-background border-2"
             />
-            <Button variant="outline" onClick={addCustomInterest} className="border-2">
+            <Button variant="outline" onClick={addCustomInterest} className="border-2 font-semibold">
               Add
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground/60">
             Press Enter or comma to add custom interests
           </p>
         </div>
