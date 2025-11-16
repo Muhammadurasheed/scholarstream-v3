@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import SavedOpportunities from "./pages/SavedOpportunities";
 import Landing from "./pages/Landing";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
@@ -69,7 +70,15 @@ const App = () => (
                   } 
                 />
                 <Route 
-                  path="/apply/:scholarshipId" 
+                  path="/saved" 
+                  element={
+                    <ProtectedRoute>
+                      <SavedOpportunities />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/apply/:scholarshipId"
                   element={
                     <ProtectedRoute>
                       <Apply />

@@ -8,6 +8,7 @@ import { QuickActionsWidget } from '@/components/dashboard/QuickActionsWidget';
 import { ActivityFeedWidget } from '@/components/dashboard/ActivityFeedWidget';
 import { PriorityAlertsSection } from '@/components/dashboard/PriorityAlertsSection';
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav';
+import { FloatingChatAssistant } from '@/components/dashboard/FloatingChatAssistant';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,6 +43,7 @@ const Dashboard = () => {
   const [sortBy, setSortBy] = useState<SortOption>('best_match');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [displayCount, setDisplayCount] = useState(12);
+  const [opportunityType, setOpportunityType] = useState<string>('all');
 
   const getUserName = () => {
     // Try to get name from localStorage profile first
@@ -67,6 +69,11 @@ const Dashboard = () => {
   const filteredAndSortedScholarships = useMemo(() => {
     let filtered = filterScholarshipsByTab(scholarships, selectedTab);
 
+    // Filter by opportunity type
+    if (opportunityType !== 'all') {
+      filtered = filtered.filter(s => s.source_type === opportunityType);
+    }
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -78,7 +85,20 @@ const Dashboard = () => {
     }
 
     return sortScholarships(filtered, sortBy);
-  }, [scholarships, selectedTab, searchQuery, sortBy]);
+  }, [scholarships, selectedTab, searchQuery, sortBy, opportunityType]);
+
+  // Calculate opportunity type counts
+  const opportunityCounts = useMemo(() => {
+    const counts = {
+      all: scholarships.length,
+      scholarship: scholarships.filter(s => s.source_type === 'platform' || s.source_type === 'government').length,
+      hackathon: scholarships.filter(s => s.source_type === 'devpost').length,
+      bounty: scholarships.filter(s => s.source_type === 'gitcoin').length,
+      competition: scholarships.filter(s => s.source_type === 'kaggle').length,
+      grant: scholarships.filter(s => s.source_type === 'government').length,
+    };
+    return counts;
+  }, [scholarships]);
 
   const displayedScholarships = filteredAndSortedScholarships.slice(0, displayCount);
 
@@ -308,6 +328,9 @@ const Dashboard = () => {
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
+      
+      {/* Floating AI Chat Assistant */}
+      <FloatingChatAssistant />
     </div>
   );
 };
