@@ -9,7 +9,7 @@ import { QuickActionsWidget } from '@/components/dashboard/QuickActionsWidget';
 import { ActivityFeedWidget } from '@/components/dashboard/ActivityFeedWidget';
 import { PriorityAlertsSection } from '@/components/dashboard/PriorityAlertsSection';
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav';
-import { FloatingChatAssistant } from '@/components/dashboard/FloatingChatAssistant';
+import { FloatingChatAssistantEnhanced } from '@/components/dashboard/FloatingChatAssistantEnhanced';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -357,7 +357,7 @@ const Dashboard = () => {
       <MobileBottomNav />
       
       {/* Floating AI Chat Assistant */}
-      <FloatingChatAssistant />
+      <FloatingChatAssistantEnhanced />
     </div>
   );
 };
