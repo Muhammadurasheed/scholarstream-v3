@@ -36,22 +36,36 @@ export const getDeadlineInfo = (deadline: string) => {
   return { urgency, color, formattedDate, countdown, daysUntil };
 };
 
+export const matchTierLabels: Record<MatchTier, string> = {
+  excellent: 'Excellent Match',
+  great: 'Great Match',
+  good: 'Good Match',
+  potential: 'Potential Match'
+};
+
 export const getMatchTierColor = (tier: MatchTier): string => {
   const colors: Record<MatchTier, string> = {
-    Excellent: 'bg-success text-success-foreground',
-    Good: 'bg-warning text-warning-foreground',
-    Fair: 'bg-muted text-muted-foreground',
-    Poor: 'bg-destructive text-destructive-foreground',
+    excellent: 'bg-success text-success-foreground',
+    great: 'bg-primary text-primary-foreground',
+    good: 'bg-warning text-warning-foreground',
+    potential: 'bg-muted text-muted-foreground',
   };
   return colors[tier];
 };
 
+export const priorityLabels: Record<PriorityLevel, string> = {
+  urgent: 'Urgent',
+  high: 'High Priority',
+  medium: 'Medium Priority',
+  low: 'Low Priority'
+};
+
 export const getPriorityColor = (priority: PriorityLevel): string => {
   const colors: Record<PriorityLevel, string> = {
-    URGENT: 'border-l-4 border-danger',
-    HIGH: 'border-l-4 border-warning',
-    MEDIUM: 'border-l-4 border-info',
-    LOW: '',
+    urgent: 'border-l-4 border-danger',
+    high: 'border-l-4 border-warning',
+    medium: 'border-l-4 border-info',
+    low: '',
   };
   return colors[priority];
 };
@@ -88,7 +102,10 @@ export const sortScholarships = (
         new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
       );
     case 'amount':
+    case 'amount_high':
       return sorted.sort((a, b) => b.amount - a.amount);
+    case 'amount_low':
+      return sorted.sort((a, b) => a.amount - b.amount);
     case 'time':
       return sorted.sort((a, b) => {
         const timeA = parseInt(a.estimated_time);
@@ -96,6 +113,7 @@ export const sortScholarships = (
         return timeA - timeB;
       });
     case 'recent':
+    case 'newest':
       return sorted.sort((a, b) => 
         new Date(b.discovered_at).getTime() - new Date(a.discovered_at).getTime()
       );
