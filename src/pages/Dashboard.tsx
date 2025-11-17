@@ -9,7 +9,7 @@ import { QuickActionsWidget } from '@/components/dashboard/QuickActionsWidget';
 import { ActivityFeedWidget } from '@/components/dashboard/ActivityFeedWidget';
 import { PriorityAlertsSection } from '@/components/dashboard/PriorityAlertsSection';
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav';
-import { FloatingChatAssistantEnhanced } from '@/components/dashboard/FloatingChatAssistantEnhanced';
+import { FloatingChatAssistant } from '@/components/dashboard/FloatingChatAssistant';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -300,7 +300,7 @@ const Dashboard = () => {
           {/* Scholarship Cards */}
           {displayedScholarships.length > 0 ? (
             <>
-              <div className={viewMode === 'grid' ? 'grid gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' : 'space-y-4'}>
+              <div className={viewMode === 'grid' ? 'grid gap-6 grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 auto-rows-fr' : 'space-y-4'}>
                 {displayedScholarships.map((scholarship) => (
                   <ScholarshipCard
                     key={scholarship.id}
@@ -357,7 +357,7 @@ const Dashboard = () => {
       <MobileBottomNav />
       
       {/* Floating AI Chat Assistant */}
-      <FloatingChatAssistantEnhanced />
+      <FloatingChatAssistant />
     </div>
   );
 };

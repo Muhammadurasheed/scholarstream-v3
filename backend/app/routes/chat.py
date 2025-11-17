@@ -11,7 +11,7 @@ from app.services.chat_service import chat_service
 from app.database import db
 
 logger = structlog.get_logger()
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["chat"])
 
 
 class ChatRequest(BaseModel):
