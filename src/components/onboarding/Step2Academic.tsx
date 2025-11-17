@@ -55,7 +55,7 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Where are you in your academic journey?
         </h1>
-        <p className="text-base text-foreground/70">
+        <p className="text-base text-muted-foreground">
           This helps us find the right opportunities for you
         </p>
       </div>

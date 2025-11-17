@@ -70,7 +70,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
         <h1 className="text-2xl md:text-3xl font-bold text-foreground">
           Let's understand your financial needs and interests
         </h1>
-        <p className="text-base text-foreground/70">
+        <p className="text-base text-muted-foreground">
           This helps us find the perfect scholarships for you
         </p>
       </div>
@@ -79,7 +79,7 @@ const Step5Interests: React.FC<Step5Props> = ({ data, onNext }) => {
         {/* Financial Need */}
         <div className="space-y-4">
           <Label className="text-lg font-bold text-foreground">What's your estimated annual financial need?</Label>
-          <p className="text-sm text-foreground/70">
+          <p className="text-sm text-muted-foreground">
             How much do you need for tuition, housing, books, etc.?
           </p>
           
