@@ -174,7 +174,10 @@ export const useScholarships = () => {
       
       // Try to fetch from backend first
       try {
+        console.log('Fetching scholarships from backend for user:', user.uid);
         const data = await apiService.getMatchedScholarships(user.uid);
+        console.log('Successfully fetched scholarships:', data.scholarships.length);
+        
         setScholarships(data.scholarships);
         
         // Calculate stats
@@ -191,26 +194,52 @@ export const useScholarships = () => {
           urgent_deadlines: urgentCount,
           applications_started: 0,
         });
-      } catch (apiError) {
-        // Fallback to mock data for development
-        console.log('Backend not available, using mock data');
-        const { mockScholarships } = await import('@/data/mockScholarships');
-        setScholarships(mockScholarships);
         
-        const totalValue = mockScholarships.reduce((sum, s) => sum + s.amount, 0);
-        const urgentCount = mockScholarships.filter(s => {
-          const daysUntil = Math.floor(
-            (new Date(s.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-          );
-          return daysUntil < 7 && daysUntil >= 0;
-        }).length;
+        if (data.scholarships.length === 0) {
+          toast({
+            title: 'No matches yet',
+            description: 'Complete your profile to find personalized opportunities.',
+          });
+        }
+      } catch (apiError: any) {
+        // Show specific error for debugging
+        console.error('Backend API error:', apiError.message);
         
-        setStats({
-          opportunities_matched: mockScholarships.length,
-          total_value: totalValue,
-          urgent_deadlines: urgentCount,
-          applications_started: 0,
-        });
+        // If user hasn't completed onboarding, show empty state
+        const hasProfile = localStorage.getItem('scholarstream_profile');
+        if (!hasProfile) {
+          setScholarships([]);
+          setStats({
+            opportunities_matched: 0,
+            total_value: 0,
+            urgent_deadlines: 0,
+            applications_started: 0,
+          });
+          
+          toast({
+            title: 'Welcome to ScholarStream!',
+            description: 'Complete your profile to discover personalized opportunities.',
+          });
+        } else {
+          // Fallback to mock data only if backend is truly unavailable
+          console.log('Backend unavailable, using sample data');
+          const { mockScholarships } = await import('@/data/mockScholarships');
+          setScholarships(mockScholarships);
+          
+          const totalValue = mockScholarships.reduce((sum, s) => sum + s.amount, 0);
+          setStats({
+            opportunities_matched: mockScholarships.length,
+            total_value: totalValue,
+            urgent_deadlines: 0,
+            applications_started: 0,
+          });
+
+          toast({
+            title: '⚠️ Connection issue',
+            description: 'Showing sample data. Backend is connecting...',
+            variant: 'destructive',
+          });
+        }
       }
       
       setLoading(false);

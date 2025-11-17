@@ -1,24 +1,40 @@
 // API Service Layer for ScholarStream Backend Integration
 import { Scholarship, DiscoveryJobResponse, UserProfile } from '@/types/scholarship';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://scholarstream-backend.onrender.com';
 
 class ApiService {
   private async fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Request failed' }));
+        throw new Error(error.message || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      // Log detailed error for debugging
+      console.error('API Request Failed:', {
+        endpoint,
+        error: error.message,
+        baseUrl: API_BASE_URL,
+      });
+      
+      // Provide more helpful error messages
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error('Backend is not reachable. Please check your internet connection or backend URL.');
+      }
+      
+      throw error;
     }
-
-    return response.json();
   }
 
   // Initial scholarship discovery after onboarding
