@@ -174,9 +174,9 @@ export const useScholarships = () => {
       
       // Try to fetch from backend first
       try {
-        console.log('Fetching scholarships from backend for user:', user.uid);
+        console.log('🔍 Fetching scholarships from backend for user:', user.uid);
         const data = await apiService.getMatchedScholarships(user.uid);
-        console.log('Successfully fetched scholarships:', data.scholarships.length);
+        console.log('✅ Successfully fetched scholarships:', data.scholarships.length);
         
         setScholarships(data.scholarships);
         
@@ -196,14 +196,22 @@ export const useScholarships = () => {
         });
         
         if (data.scholarships.length === 0) {
-          toast({
-            title: 'No matches yet',
-            description: 'Complete your profile to find personalized opportunities.',
-          });
+          const hasProfile = localStorage.getItem('scholarstream_profile');
+          if (hasProfile) {
+            toast({
+              title: 'Profile complete!',
+              description: 'Your personalized opportunities are being discovered. Check back in a few minutes.',
+            });
+          } else {
+            toast({
+              title: 'Welcome to ScholarStream!',
+              description: 'Complete your profile to discover personalized opportunities.',
+            });
+          }
         }
       } catch (apiError: any) {
         // Show specific error for debugging
-        console.error('Backend API error:', apiError.message);
+        console.error('❌ Backend API error:', apiError.message);
         
         // If user hasn't completed onboarding, show empty state
         const hasProfile = localStorage.getItem('scholarstream_profile');
@@ -221,24 +229,20 @@ export const useScholarships = () => {
             description: 'Complete your profile to discover personalized opportunities.',
           });
         } else {
-          // Fallback to mock data only if backend is truly unavailable
-          console.log('Backend unavailable, using sample data');
-          const { mockScholarships } = await import('@/data/mockScholarships');
-          setScholarships(mockScholarships);
+          // Show actual error to user - this is key!
+          console.log('🔄 Backend unavailable, attempting API call diagnosis...');
           
-          const totalValue = mockScholarships.reduce((sum, s) => sum + s.amount, 0);
-          setStats({
-            opportunities_matched: mockScholarships.length,
-            total_value: totalValue,
-            urgent_deadlines: 0,
-            applications_started: 0,
-          });
-
           toast({
-            title: '⚠️ Connection issue',
-            description: 'Showing sample data. Backend is connecting...',
+            title: 'Connecting to backend...',
+            description: 'Your scholarships will appear once connection is established. Please wait.',
             variant: 'destructive',
           });
+          
+          // Don't show mock data - keep trying the real backend
+          setTimeout(() => {
+            console.log('🔄 Retrying backend connection...');
+            loadScholarships();
+          }, 5000); // Retry after 5 seconds
         }
       }
       

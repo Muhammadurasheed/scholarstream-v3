@@ -138,13 +138,29 @@ const Dashboard = () => {
     });
   }, [scholarships]);
 
-  if (loading) {
+  if (loading || (discoveryStatus === 'processing' && scholarships.length === 0)) {
     return (
       <div className="min-h-screen bg-background">
         <DashboardHeader />
         <div className="container py-8">
+          {/* Hero Section with Discovery Status */}
+          <div className="mb-8 rounded-xl bg-gradient-to-r from-primary/15 via-primary/8 to-background p-8 border border-primary/20">
+            <h1 className="mb-2 text-3xl font-bold text-foreground">
+              {getGreeting()}, {getUserName()}! 👋
+            </h1>
+            {discoveryStatus === 'processing' ? (
+              <div className="flex items-center gap-3 mt-4">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                <p className="text-primary font-semibold">
+                  Discovering opportunities for you... ({discoveryProgress}%)
+                </p>
+              </div>
+            ) : (
+              <p className="text-foreground/70 font-medium">Loading your dashboard...</p>
+            )}
+          </div>
+          
           <div className="space-y-8">
-            <Skeleton className="h-24 w-full" />
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {[...Array(4)].map((_, i) => (
                 <Skeleton key={i} className="h-32" />
