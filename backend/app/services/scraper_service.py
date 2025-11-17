@@ -16,7 +16,7 @@ from app.models import ScrapedScholarship
 from app.config import settings
 from app.services.scrapers.devpost_scraper import DevpostScraper
 from app.services.scrapers.mlh_scraper import MLHScraper
-from app.services.scrapers.gitcoin_scraper import GitcoinScraper
+from app.services.scrapers.web3_bounties_scraper import Web3BountiesScraper
 from app.services.scrapers.kaggle_scraper import KaggleScraper
 from app.services.scrapers.scholarships_scraper import ScholarshipsScraper
 
@@ -45,7 +45,7 @@ class OpportunityScraperService:
         # Initialize all scrapers
         self.devpost_scraper = DevpostScraper()
         self.mlh_scraper = MLHScraper()
-        self.gitcoin_scraper = GitcoinScraper()
+        self.web3_bounties_scraper = Web3BountiesScraper()
         self.kaggle_scraper = KaggleScraper()
         self.scholarships_scraper = ScholarshipsScraper()
         
@@ -61,19 +61,19 @@ class OpportunityScraperService:
         all_opportunities = []
         
         # Run ALL scrapers in parallel for maximum speed
-        logger.info("Launching parallel scrapers: Devpost, MLH, Gitcoin, Kaggle, Scholarships")
+        logger.info("Launching parallel scrapers: Devpost, MLH, Web3 Bounties, Kaggle, Scholarships")
         
         results = await asyncio.gather(
             self.devpost_scraper.scrape(),
             self.mlh_scraper.scrape(),
-            self.gitcoin_scraper.scrape(),
+            self.web3_bounties_scraper.scrape(),
             self.kaggle_scraper.scrape(),
             self.scholarships_scraper.scrape(),
             return_exceptions=True
         )
         
         # Aggregate results
-        scraper_names = ['Devpost', 'MLH', 'Gitcoin', 'Kaggle', 'Scholarships']
+        scraper_names = ['Devpost', 'MLH', 'Web3Bounties', 'Kaggle', 'Scholarships']
         for idx, result in enumerate(results):
             if isinstance(result, list):
                 all_opportunities.extend(result)
