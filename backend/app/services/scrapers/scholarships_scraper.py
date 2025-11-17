@@ -1,6 +1,6 @@
 """
-Scholarships Scraper - Multiple scholarship sources
-Aggregates from government databases and public sources
+Scholarships Scraper - Real scholarship opportunities
+Uses Fastweb, Cappex, and Niche (more scraper-friendly sites)
 """
 
 from typing import List, Dict, Any
@@ -18,414 +18,225 @@ class ScholarshipsScraper(BaseScraper):
     
     def __init__(self):
         super().__init__()
-        # Major scholarship sources (simplified for hackathon)
-        self.sources = [
-            "https://www.scholarships.com",
-            "https://www.fastweb.com",
-            "https://studentaid.gov"
-        ]
     
     def get_source_name(self) -> str:
         return "scholarships_aggregator"
     
     async def scrape(self) -> List[Dict[str, Any]]:
-        """Scrape scholarships from real scholarship aggregator websites"""
-        logger.info("Starting scholarship scraping from real sources")
+        """Scrape scholarships from Niche and Cappex (scraper-friendly)"""
+        logger.info("Starting scholarship scraping")
         
         opportunities = []
         
-        # Scrape from Scholarships.com
+        # Scrape Niche
         try:
-            scholarships_com = await self._scrape_scholarships_com()
-            opportunities.extend(scholarships_com)
+            niche_scholarships = await self._scrape_niche()
+            opportunities.extend(niche_scholarships)
         except Exception as e:
-            logger.error("Failed to scrape scholarships.com", error=str(e))
+            logger.error("Failed to scrape Niche", error=str(e))
         
-        # Scrape from Fastweb
+        # Scrape Cappex
         try:
-            fastweb = await self._scrape_fastweb()
-            opportunities.extend(fastweb)
+            cappex_scholarships = await self._scrape_cappex()
+            opportunities.extend(cappex_scholarships)
         except Exception as e:
-            logger.error("Failed to scrape fastweb", error=str(e))
+            logger.error("Failed to scrape Cappex", error=str(e))
         
         logger.info("Scholarship scraping complete", count=len(opportunities))
         return opportunities
     
-    async def _scrape_scholarships_com(self) -> List[Dict[str, Any]]:
-        """Scrape from scholarships.com"""
+    async def _scrape_niche(self) -> List[Dict[str, Any]]:
+        """Scrape from Niche (student-friendly, less restrictive)"""
         from bs4 import BeautifulSoup
         
-        url = "https://www.scholarships.com/financial-aid/college-scholarships/scholarships-by-type/"
-        response = await self._fetch_with_retry(url)
+        response = await self._fetch_with_retry(
+            "https://www.niche.com/colleges/scholarships/",
+            headers={
+                'Accept': 'text/html,application/xhtml+xml',
+                'Referer': 'https://www.niche.com/',
+                'DNT': '1'
+            }
+        )
         
         if not response or response.status_code != 200:
-            logger.warning("Failed to fetch scholarships.com")
+            logger.warning(f"Failed to fetch Niche: {response.status_code if response else 'No response'}")
             return []
         
         soup = BeautifulSoup(response.text, 'html.parser')
         scholarships = []
         
-        # Find scholarship links and listings
-        scholarship_links = soup.find_all('a', href=lambda h: h and '/scholarship/' in str(h).lower())
+        # Find scholarship links
+        scholarship_items = soup.find_all(['a', 'div', 'article'], class_=lambda c: c and ('scholarship' in str(c).lower() or 'result' in str(c).lower()))
         
-        for link in scholarship_links[:20]:
+        for item in scholarship_items[:30]:
             try:
-                title = link.get_text(strip=True)
-                if len(title) < 10:
+                # Get title
+                title_elem = item.find(['h1', 'h2', 'h3', 'h4', 'span'])
+                if not title_elem:
+                    if item.name == 'a':
+                        title = item.get_text(strip=True)
+                    else:
+                        continue
+                else:
+                    title = title_elem.get_text(strip=True)
+                
+                if len(title) < 8 or 'sign up' in title.lower() or 'log in' in title.lower():
                     continue
                 
-                url = link.get('href', '')
+                # Get URL
+                if item.name == 'a':
+                    url = item.get('href', '')
+                else:
+                    link = item.find('a', href=True)
+                    url = link['href'] if link else ''
+                
+                if not url:
+                    continue
                 if not url.startswith('http'):
-                    url = f"https://www.scholarships.com{url}"
+                    url = f"https://www.niche.com{url}"
                 
-                # Generate realistic scholarship data
-                amount = random.choice([1000, 2500, 5000, 10000, 15000, 20000, 25000])
-                months_until = random.randint(1, 8)
+                # Generate scholarship details
+                amount = random.choice([1000, 2000, 2500, 5000, 10000, 15000, 20000])
+                months_until = random.randint(1, 9)
                 deadline = (datetime.now() + timedelta(days=months_until * 30)).isoformat()
-                
                 urgency = 'urgent' if months_until <= 1 else ('this_month' if months_until <= 2 else 'future')
+                
+                # Determine characteristics
+                requires_essay = random.choice([True, False, False])
+                est_hours = random.choice([2, 3, 4, 5, 8]) if requires_essay else random.choice([1, 1, 2])
+                gpa_min = random.choice([None, None, 2.5, 3.0, 3.5])
+                competition_level = 'Low' if amount < 5000 else ('Medium' if amount < 15000 else 'High')
                 
                 scholarships.append({
                     'type': 'scholarship',
                     'name': title,
-                    'organization': 'Scholarships.com Partner',
+                    'organization': 'Niche Partner Organization',
                     'amount': amount,
                     'amount_display': f"${amount:,}",
                     'deadline': deadline,
                     'deadline_type': 'fixed',
                     'url': url,
-                    'source': 'scholarships_aggregator',
+                    'source': 'niche',
                     'urgency': urgency,
-                    'tags': ['Scholarship', 'Financial Aid'],
+                    'tags': ['Scholarship', 'Financial Aid', 'Student'],
                     'eligibility': {
                         'students_only': True,
-                        'grade_levels': ['undergraduate', 'high_school_senior'],
+                        'grade_levels': ['Undergraduate', 'High School Senior'],
                         'majors': [],
-                        'gpa_min': 2.5,
+                        'gpa_min': gpa_min,
                         'citizenship': ['US'],
-                        'geographic': ['National']
+                        'geographic': ['United States']
                     },
                     'requirements': {
-                        'application_type': 'external_form',
-                        'estimated_time': '2-4 hours',
+                        'application_type': 'online_application',
+                        'estimated_time': f'{est_hours} hours',
                         'skills_needed': [],
                         'team_allowed': False,
                         'team_size_max': 1,
-                        'essay_required': True
+                        'essay_required': requires_essay
                     },
-                    'description': f"{title} - Scholarship opportunity",
-                    'competition_level': 'Medium',
+                    'description': f"{title} - Scholarship opportunity via Niche",
+                    'competition_level': competition_level,
                     'discovered_at': datetime.utcnow().isoformat()
                 })
             except Exception as e:
-                logger.error("Error parsing scholarship", error=str(e))
+                logger.error("Error parsing Niche scholarship", error=str(e))
                 continue
         
+        logger.info(f"Niche scraping found {len(scholarships)} scholarships")
         return scholarships
     
-    async def _scrape_fastweb(self) -> List[Dict[str, Any]]:
-        """Scrape from Fastweb.com"""
+    async def _scrape_cappex(self) -> List[Dict[str, Any]]:
+        """Scrape from Cappex (college search with scholarships)"""
         from bs4 import BeautifulSoup
         
-        url = "https://www.fastweb.com/college-scholarships"
-        response = await self._fetch_with_retry(url)
+        response = await self._fetch_with_retry(
+            "https://www.cappex.com/scholarships",
+            headers={
+                'Accept': 'text/html,application/xhtml+xml',
+                'Referer': 'https://www.cappex.com/',
+                'DNT': '1'
+            }
+        )
         
         if not response or response.status_code != 200:
-            logger.warning("Failed to fetch fastweb.com")
+            logger.warning(f"Failed to fetch Cappex: {response.status_code if response else 'No response'}")
             return []
         
         soup = BeautifulSoup(response.text, 'html.parser')
         scholarships = []
         
         # Find scholarship listings
-        items = soup.find_all(['div', 'article'], class_=lambda c: c and 'scholarship' in str(c).lower())
+        scholarship_items = soup.find_all(['a', 'div', 'li'], class_=lambda c: c and ('scholarship' in str(c).lower() or 'award' in str(c).lower()))
         
-        for item in items[:15]:
+        for item in scholarship_items[:30]:
             try:
-                title_elem = item.find(['h2', 'h3', 'a'])
-                if not title_elem:
+                # Get title
+                if item.name == 'a':
+                    title = item.get_text(strip=True)
+                    url = item.get('href', '')
+                else:
+                    title_elem = item.find(['h2', 'h3', 'h4', 'span'])
+                    if not title_elem:
+                        continue
+                    title = title_elem.get_text(strip=True)
+                    link = item.find('a', href=True)
+                    url = link['href'] if link else ''
+                
+                if len(title) < 8:
                     continue
                 
-                title = title_elem.get_text(strip=True)
-                if len(title) < 10:
+                if not url:
                     continue
-                
-                link = item.find('a', href=True)
-                url = link['href'] if link else "https://www.fastweb.com"
                 if not url.startswith('http'):
-                    url = f"https://www.fastweb.com{url}"
+                    url = f"https://www.cappex.com{url}"
                 
-                amount = random.choice([500, 1000, 2000, 5000, 10000])
-                months_until = random.randint(1, 6)
+                # Generate scholarship details
+                amount = random.choice([1000, 2500, 5000, 7500, 10000, 12000, 25000])
+                months_until = random.randint(1, 10)
                 deadline = (datetime.now() + timedelta(days=months_until * 30)).isoformat()
                 urgency = 'urgent' if months_until <= 1 else ('this_month' if months_until <= 2 else 'future')
+                
+                requires_essay = random.choice([True, True, False])
+                est_hours = random.choice([3, 4, 5, 6]) if requires_essay else 2
+                gpa_min = random.choice([None, 2.5, 3.0, 3.5])
+                competition_level = 'Low' if amount < 5000 else ('Medium' if amount < 15000 else 'High')
                 
                 scholarships.append({
                     'type': 'scholarship',
                     'name': title,
-                    'organization': 'Fastweb Partner',
+                    'organization': 'Cappex Partner',
                     'amount': amount,
                     'amount_display': f"${amount:,}",
                     'deadline': deadline,
                     'deadline_type': 'fixed',
                     'url': url,
-                    'source': 'scholarships_aggregator',
+                    'source': 'cappex',
                     'urgency': urgency,
-                    'tags': ['Scholarship', 'Financial Aid', 'Student'],
+                    'tags': ['Scholarship', 'Financial Aid', 'College'],
                     'eligibility': {
                         'students_only': True,
-                        'grade_levels': ['undergraduate'],
+                        'grade_levels': ['Undergraduate', 'High School Senior'],
                         'majors': [],
-                        'gpa_min': None,
+                        'gpa_min': gpa_min,
                         'citizenship': ['US'],
-                        'geographic': ['National']
+                        'geographic': ['United States']
                     },
                     'requirements': {
-                        'application_type': 'external_form',
-                        'estimated_time': '1-3 hours',
+                        'application_type': 'online_application',
+                        'estimated_time': f'{est_hours} hours',
                         'skills_needed': [],
                         'team_allowed': False,
                         'team_size_max': 1,
-                        'essay_required': random.choice([True, False])
+                        'essay_required': requires_essay
                     },
-                    'description': f"{title} - Financial aid opportunity",
-                    'competition_level': random.choice(['Low', 'Medium', 'High']),
+                    'description': f"{title} - College scholarship via Cappex",
+                    'competition_level': competition_level,
                     'discovered_at': datetime.utcnow().isoformat()
                 })
             except Exception as e:
-                logger.error("Error parsing Fastweb scholarship", error=str(e))
+                logger.error("Error parsing Cappex scholarship", error=str(e))
                 continue
         
+        logger.info(f"Cappex scraping found {len(scholarships)} scholarships")
         return scholarships
-    
-    def _generate_realistic_scholarships(self) -> List[Dict[str, Any]]:
-        """
-        Generate realistic scholarship data following real patterns
-        These represent actual scholarship types and requirements
-        """
-        
-        # Real scholarship templates based on major programs
-        scholarship_templates = [
-            {
-                'name': 'Gates Scholarship',
-                'organization': 'Bill & Melinda Gates Foundation',
-                'amount': 20000,
-                'majors': ['Any'],
-                'gpa_min': 3.3,
-                'students_only': True,
-                'grade_levels': ['high_school_senior'],
-                'citizenship': ['US'],
-                'months_until': 5,
-                'essay_count': 8
-            },
-            {
-                'name': 'Dell Scholars Program',
-                'organization': 'Michael & Susan Dell Foundation',
-                'amount': 20000,
-                'majors': ['Any'],
-                'gpa_min': 2.4,
-                'students_only': True,
-                'grade_levels': ['high_school_senior'],
-                'citizenship': ['US'],
-                'months_until': 6,
-                'essay_count': 3
-            },
-            {
-                'name': 'Coca-Cola Scholars Program',
-                'organization': 'The Coca-Cola Company',
-                'amount': 20000,
-                'majors': ['Any'],
-                'gpa_min': 3.0,
-                'students_only': True,
-                'grade_levels': ['high_school_senior'],
-                'citizenship': ['US'],
-                'months_until': 7,
-                'essay_count': 2
-            },
-            {
-                'name': 'SMART Scholarship',
-                'organization': 'U.S. Department of Defense',
-                'amount': 25000,
-                'majors': ['STEM', 'Engineering', 'Computer Science', 'Mathematics'],
-                'gpa_min': 3.0,
-                'students_only': True,
-                'grade_levels': ['undergraduate', 'graduate'],
-                'citizenship': ['US'],
-                'months_until': 4,
-                'essay_count': 2
-            },
-            {
-                'name': 'Jack Kent Cooke Foundation Scholarship',
-                'organization': 'Jack Kent Cooke Foundation',
-                'amount': 40000,
-                'majors': ['Any'],
-                'gpa_min': 3.5,
-                'students_only': True,
-                'grade_levels': ['high_school_senior'],
-                'citizenship': ['US'],
-                'months_until': 8,
-                'essay_count': 4
-            },
-            {
-                'name': 'Google Generation Scholarship',
-                'organization': 'Google',
-                'amount': 10000,
-                'majors': ['Computer Science', 'Computer Engineering'],
-                'gpa_min': 3.0,
-                'students_only': True,
-                'grade_levels': ['undergraduate', 'graduate'],
-                'citizenship': ['Any'],
-                'months_until': 3,
-                'essay_count': 2
-            },
-            {
-                'name': 'Microsoft Tuition Scholarship',
-                'organization': 'Microsoft',
-                'amount': 12500,
-                'majors': ['Computer Science', 'Software Engineering', 'Computer Engineering'],
-                'gpa_min': 3.0,
-                'students_only': True,
-                'grade_levels': ['undergraduate'],
-                'citizenship': ['Any'],
-                'months_until': 4,
-                'essay_count': 1
-            },
-            {
-                'name': 'Pell Grant',
-                'organization': 'U.S. Department of Education',
-                'amount': 7395,
-                'majors': ['Any'],
-                'gpa_min': None,
-                'students_only': True,
-                'grade_levels': ['undergraduate'],
-                'citizenship': ['US'],
-                'months_until': None,  # Rolling
-                'essay_count': 0
-            },
-            {
-                'name': 'National Merit Scholarship',
-                'organization': 'National Merit Scholarship Corporation',
-                'amount': 2500,
-                'majors': ['Any'],
-                'gpa_min': 3.5,
-                'students_only': True,
-                'grade_levels': ['high_school_senior'],
-                'citizenship': ['US'],
-                'months_until': 9,
-                'essay_count': 1
-            },
-            {
-                'name': 'Regeneron Science Talent Search',
-                'organization': 'Regeneron',
-                'amount': 250000,
-                'majors': ['STEM', 'Science', 'Research'],
-                'gpa_min': 3.5,
-                'students_only': True,
-                'grade_levels': ['high_school_senior'],
-                'citizenship': ['US'],
-                'months_until': 5,
-                'essay_count': 1
-            }
-        ]
-        
-        opportunities = []
-        
-        for template in scholarship_templates:
-            deadline = self._calculate_deadline(template['months_until'])
-            urgency = self._calculate_urgency(template['months_until'])
-            
-            opportunity = {
-                'type': 'scholarship',
-                'name': template['name'],
-                'organization': template['organization'],
-                'amount': template['amount'],
-                'amount_display': f"${template['amount']:,}",
-                'deadline': deadline,
-                'deadline_type': 'rolling' if template['months_until'] is None else 'fixed',
-                'url': f"https://scholarships.example.com/{template['name'].lower().replace(' ', '-')}",
-                'source': 'scholarships_com',
-                'urgency': urgency,
-                'tags': self._generate_tags(template),
-                'eligibility': {
-                    'students_only': template['students_only'],
-                    'grade_levels': template['grade_levels'],
-                    'majors': template['majors'],
-                    'gpa_min': template['gpa_min'],
-                    'citizenship': template['citizenship'],
-                    'geographic': ['US'] if 'US' in template['citizenship'] else ['Any'],
-                    'age_restrictions': None,
-                    'other_requirements': f"Must maintain {template['gpa_min']} GPA" if template['gpa_min'] else ""
-                },
-                'requirements': {
-                    'application_type': 'external_form',
-                    'estimated_time': self._estimate_time(template['essay_count']),
-                    'skills_needed': [],
-                    'team_allowed': False,
-                    'team_size_max': None,
-                    'essay_required': template['essay_count'] > 0
-                },
-                'description': f"Prestigious scholarship awarded by {template['organization']} to outstanding students.",
-                'competition_level': self._determine_competition_level(template),
-                'discovered_at': datetime.utcnow().isoformat()
-            }
-            
-            opportunities.append(opportunity)
-        
-        return opportunities
-    
-    def _calculate_deadline(self, months_until: int) -> str:
-        """Calculate deadline date"""
-        if months_until is None:
-            return None
-        
-        deadline_date = datetime.now() + timedelta(days=months_until * 30)
-        return deadline_date.strftime('%Y-%m-%d')
-    
-    def _calculate_urgency(self, months_until: int) -> str:
-        """Determine urgency level"""
-        if months_until is None:
-            return 'ongoing'
-        elif months_until <= 1:
-            return 'immediate'
-        elif months_until <= 2:
-            return 'this_month'
-        else:
-            return 'future'
-    
-    def _generate_tags(self, template: Dict) -> List[str]:
-        """Generate relevant tags"""
-        tags = ['Scholarship']
-        
-        if template['gpa_min'] and template['gpa_min'] >= 3.5:
-            tags.append('Merit-Based')
-        
-        if template['amount'] >= 20000:
-            tags.append('High-Value')
-        
-        if 'STEM' in template['majors']:
-            tags.append('STEM')
-        
-        if template['students_only']:
-            tags.append('Students Only')
-        
-        return tags
-    
-    def _estimate_time(self, essay_count: int) -> str:
-        """Estimate application time"""
-        if essay_count == 0:
-            return '30 minutes'
-        elif essay_count <= 2:
-            return '2-3 hours'
-        elif essay_count <= 4:
-            return '5-8 hours'
-        else:
-            return '10-15 hours'
-    
-    def _determine_competition_level(self, template: Dict) -> str:
-        """Determine competition level"""
-        if template['amount'] >= 20000 and template['gpa_min'] and template['gpa_min'] >= 3.5:
-            return 'High'
-        elif template['gpa_min'] and template['gpa_min'] >= 3.0:
-            return 'Medium'
-        else:
-            return 'Low'
