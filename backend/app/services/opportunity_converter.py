@@ -124,15 +124,15 @@ def calculate_match_score(opp_data: Dict[str, Any], user_profile: UserProfile) -
 
 
 def determine_match_tier(score: int) -> str:
-    """Determine match tier from score"""
+    """Map score to backend enum: Excellent | Good | Fair | Poor"""
     if score >= 85:
-        return "excellent"
+        return "Excellent"
     elif score >= 70:
-        return "great"
+        return "Good"
     elif score >= 55:
-        return "good"
+        return "Fair"
     else:
-        return "potential"
+        return "Poor"
 
 
 def determine_priority(opp_data: Dict[str, Any], match_score: int) -> str:
