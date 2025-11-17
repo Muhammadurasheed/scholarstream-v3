@@ -149,10 +149,11 @@ class FirebaseDB:
         """Add scholarship to user's saved list"""
         try:
             doc_ref = self.db.collection('users').document(user_id)
-            doc_ref.update({
+            # Use set with merge to create document if it doesn't exist
+            doc_ref.set({
                 'saved_scholarships': firestore.ArrayUnion([scholarship_id]),
                 'updated_at': firestore.SERVER_TIMESTAMP
-            })
+            }, merge=True)
             logger.info("Scholarship saved to user favorites", user_id=user_id, scholarship_id=scholarship_id)
             return True
         except Exception as e:
@@ -163,10 +164,11 @@ class FirebaseDB:
         """Remove scholarship from user's saved list"""
         try:
             doc_ref = self.db.collection('users').document(user_id)
-            doc_ref.update({
+            # Use set with merge to ensure document exists
+            doc_ref.set({
                 'saved_scholarships': firestore.ArrayRemove([scholarship_id]),
                 'updated_at': firestore.SERVER_TIMESTAMP
-            })
+            }, merge=True)
             logger.info("Scholarship removed from user favorites", user_id=user_id, scholarship_id=scholarship_id)
             return True
         except Exception as e:

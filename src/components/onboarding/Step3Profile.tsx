@@ -48,7 +48,7 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
           Tell us about your academic performance
         </h1>
-        <p className="text-base text-foreground/70">
+        <p className="text-base text-muted-foreground">
           This helps us match you with merit-based opportunities
         </p>
         <p className="text-sm font-semibold text-warning">
@@ -73,7 +73,7 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
             step={0.1}
             className="w-full"
           />
-          <p className="text-sm text-foreground/60">
+          <p className="text-sm text-muted-foreground">
             Don't worry if you're not sure - you can update this later
           </p>
         </div>
