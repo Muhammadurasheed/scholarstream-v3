@@ -33,6 +33,12 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Onboarding drafts - users can read/write their own drafts
+    match /onboarding_drafts/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+    
     // Scholarships collection - authenticated users can read all
     match /scholarships/{scholarshipId} {
       allow read: if request.auth != null;
@@ -75,6 +81,7 @@ service cloud.firestore {
 ## What These Rules Do
 
 - ✅ **Users can create and manage their own profile**
+- ✅ **Users can save and load their onboarding drafts**
 - ✅ **Users can read all scholarships** (but only backend can write)
 - ✅ **Users can manage their own applications**
 - ✅ **Users can manage their own saved scholarships**
