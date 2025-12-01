@@ -45,7 +45,7 @@ async def chat_with_ai(request: ChatRequest):
             request.context['user_profile'] = user_profile
         
         # Get matched opportunities count
-        matched = await db.get_user_matches(request.user_id)
+        matched = await db.get_user_matched_scholarships(request.user_id)
         request.context['matched_count'] = len(matched) if matched else 0
         
         # Process chat

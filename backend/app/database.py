@@ -398,6 +398,70 @@ class FirebaseDB:
         except Exception as e:
             logger.error("Failed to fetch discovery job", job_id=job_id, error=str(e))
             raise
+    
+    # Chat History Operations
+    async def save_chat_message(self, user_id: str, role: str, content: str) -> bool:
+        """Save a chat message to conversation history"""
+        try:
+            doc_ref = self.db.collection('chat_history').document(user_id).collection('messages').document()
+            doc_ref.set({
+                'role': role,
+                'content': content,
+                'timestamp': firestore.SERVER_TIMESTAMP
+            })
+            logger.info("Chat message saved", user_id=user_id, role=role)
+            return True
+        except Exception as e:
+            logger.error("Failed to save chat message", user_id=user_id, error=str(e))
+            # Don't raise - chat should continue even if history fails
+            return False
+    
+    async def get_chat_history(self, user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Get conversation history for a user"""
+        try:
+            messages = self.db.collection('chat_history').document(user_id).collection('messages')\
+                .order_by('timestamp', direction=firestore.Query.DESCENDING)\
+                .limit(limit)\
+                .stream()
+            
+            history = []
+            for msg in messages:
+                history.append(msg.to_dict())
+            
+            # Reverse to get chronological order
+            history.reverse()
+            
+            logger.info("Fetched chat history", user_id=user_id, count=len(history))
+            return history
+        except Exception as e:
+            logger.error("Failed to fetch chat history", user_id=user_id, error=str(e))
+            return []
+    
+    async def clear_chat_history(self, user_id: str) -> bool:
+        """Clear conversation history for a user"""
+        try:
+            messages = self.db.collection('chat_history').document(user_id).collection('messages').stream()
+            
+            batch = self.db.batch()
+            count = 0
+            for msg in messages:
+                batch.delete(msg.reference)
+                count += 1
+                
+                # Firestore batch limit is 500
+                if count >= 500:
+                    batch.commit()
+                    batch = self.db.batch()
+                    count = 0
+            
+            if count > 0:
+                batch.commit()
+            
+            logger.info("Chat history cleared", user_id=user_id)
+            return True
+        except Exception as e:
+            logger.error("Failed to clear chat history", user_id=user_id, error=str(e))
+            raise
 
 
 # Global database instance
