@@ -3,6 +3,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { sanitizeData } from '@/lib/utils';
 
 export const useFirebaseAutoSave = <T extends Record<string, any>>(
   data: T,
@@ -14,22 +15,6 @@ export const useFirebaseAutoSave = <T extends Record<string, any>>(
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
-
-  // Helper to remove undefined values (Firestore doesn't like them)
-  const sanitizeData = (obj: any): any => {
-    if (obj === null || obj === undefined) return null;
-    if (Array.isArray(obj)) return obj.map(sanitizeData);
-    if (typeof obj === 'object') {
-      const newObj: any = {};
-      Object.keys(obj).forEach(key => {
-        if (obj[key] !== undefined) {
-          newObj[key] = sanitizeData(obj[key]);
-        }
-      });
-      return newObj;
-    }
-    return obj;
-  };
 
   useEffect(() => {
     if (!user) return;
@@ -105,4 +90,3 @@ export const useFirebaseAutoSave = <T extends Record<string, any>>(
     };
   }, [data, user, collectionPath, debounceMs, toast]);
 };
-

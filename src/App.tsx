@@ -35,71 +35,71 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <div className="dark">
+          <div className="dark min-h-screen bg-background text-foreground">
             <OfflineBanner />
             <Toaster />
             <Sonner />
-            <BrowserRouter>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route 
-                  path="/onboarding" 
+                <Route
+                  path="/onboarding"
                   element={
                     <ProtectedRoute requireOnboarding={false}>
                       <Onboarding />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/dashboard" 
+                <Route
+                  path="/dashboard"
                   element={
                     <ProtectedRoute>
                       <Dashboard />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/opportunity/:id" 
+                <Route
+                  path="/opportunity/:id"
                   element={
                     <ProtectedRoute>
                       <OpportunityDetail />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/saved" 
+                <Route
+                  path="/saved"
                   element={
                     <ProtectedRoute>
                       <SavedOpportunities />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
+                <Route
                   path="/apply/:scholarshipId"
                   element={
                     <ProtectedRoute>
                       <Apply />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/applications" 
+                <Route
+                  path="/applications"
                   element={
                     <ProtectedRoute>
                       <Applications />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/profile" 
+                <Route
+                  path="/profile"
                   element={
                     <ProtectedRoute>
                       <Profile />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
                 <Route path="*" element={<NotFound />} />
               </Routes>

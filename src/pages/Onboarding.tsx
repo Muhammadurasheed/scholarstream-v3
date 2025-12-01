@@ -13,6 +13,7 @@ import Step3Profile from '@/components/onboarding/Step3Profile';
 import Step4Background from '@/components/onboarding/Step4Background';
 import Step5Interests from '@/components/onboarding/Step5Interests';
 import Step6Complete from '@/components/onboarding/Step6Complete';
+import { sanitizeData } from '@/lib/utils';
 
 export interface OnboardingData {
   firstName: string;
@@ -136,18 +137,21 @@ const Onboarding = () => {
       const { doc, updateDoc } = await import('firebase/firestore');
       const { db } = await import('@/lib/firebase');
 
+      // Sanitize data before saving to remove undefined values
+      const cleanData = sanitizeData(data);
+
       await updateDoc(doc(db, 'users', user.uid), {
         onboarding_completed: true,
-        profile: data,
+        profile: cleanData,
         updated_at: new Date()
       });
 
       localStorage.setItem('scholarstream_onboarding_complete', 'true');
-      localStorage.setItem('scholarstream_profile', JSON.stringify(data));
+      localStorage.setItem('scholarstream_profile', JSON.stringify(cleanData));
       localStorage.removeItem('scholarstream_onboarding_data');
 
       // Navigate to dashboard with discovery trigger
-      navigate('/dashboard', { state: { triggerDiscovery: true, profileData: data } });
+      navigate('/dashboard', { state: { triggerDiscovery: true, profileData: cleanData } });
     } catch (error) {
       console.error('Failed to save completion status:', error);
       toast({
@@ -187,7 +191,7 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Progress Bar */}
       <div className="bg-card border-b border-border p-4">
         <div className="max-w-2xl mx-auto">
