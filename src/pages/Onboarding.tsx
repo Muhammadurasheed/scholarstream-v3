@@ -134,17 +134,18 @@ const Onboarding = () => {
 
     // Mark onboarding as complete
     try {
-      const { doc, updateDoc } = await import('firebase/firestore');
+      const { doc, setDoc } = await import('firebase/firestore');
       const { db } = await import('@/lib/firebase');
 
       // Sanitize data before saving to remove undefined values
       const cleanData = sanitizeData(data);
 
-      await updateDoc(doc(db, 'users', user.uid), {
+      // Use setDoc with merge to create or update the document
+      await setDoc(doc(db, 'users', user.uid), {
         onboarding_completed: true,
         profile: cleanData,
         updated_at: new Date()
-      });
+      }, { merge: true });
 
       localStorage.setItem('scholarstream_onboarding_complete', 'true');
       localStorage.setItem('scholarstream_profile', JSON.stringify(cleanData));
