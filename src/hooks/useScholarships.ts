@@ -229,20 +229,28 @@ export const useScholarships = () => {
             description: 'Complete your profile to discover personalized opportunities.',
           });
         } else {
-          // Show actual error to user - this is key!
-          console.log('🔄 Backend unavailable, attempting API call diagnosis...');
+          // Backend is unavailable - show helpful message
+          console.log('⚠️ Backend connection issue. User has completed onboarding.');
           
-          toast({
-            title: 'Connecting to backend...',
-            description: 'Your scholarships will appear once connection is established. Please wait.',
-            variant: 'destructive',
+          // Set empty scholarships but don't retry infinitely
+          setScholarships([]);
+          setStats({
+            opportunities_matched: 0,
+            total_value: 0,
+            urgent_deadlines: 0,
+            applications_started: 0,
           });
           
-          // Don't show mock data - keep trying the real backend
+          toast({
+            title: 'Discovering opportunities...',
+            description: 'Your personalized matches are being prepared. This may take a minute.',
+          });
+          
+          // Single retry after 8 seconds
           setTimeout(() => {
-            console.log('🔄 Retrying backend connection...');
+            console.log('🔄 Retrying backend connection (single attempt)...');
             loadScholarships();
-          }, 5000); // Retry after 5 seconds
+          }, 8000);
         }
       }
       

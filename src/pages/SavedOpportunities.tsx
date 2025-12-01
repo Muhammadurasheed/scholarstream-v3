@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Bookmark, Search, Grid, List, Download } from 'lucide-react';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { ScholarshipCard } from '@/components/dashboard/ScholarshipCard';
@@ -7,6 +7,7 @@ import { FloatingChatAssistant } from '@/components/dashboard/FloatingChatAssist
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useScholarships } from '@/hooks/useScholarships';
+import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { sortScholarships } from '@/utils/scholarshipUtils';
 import { SortOption, ViewMode } from '@/types/scholarship';
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/select';
 
 const SavedOpportunities = () => {
+  const { user } = useAuth();
   const {
     scholarships,
     loading,
