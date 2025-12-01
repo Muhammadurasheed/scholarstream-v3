@@ -209,11 +209,14 @@ RESPONSE STYLE:
                     'name': opp.name,
                     'organization': opp.organization,
                     'amount': opp.amount,
+                    'amount_display': opp.amount_display,
                     'deadline': opp.deadline,
                     'type': self._infer_type(opp),
                     'urgency': self._calculate_urgency(opp),
                     'match_score': opp.match_score,
-                    'url': opp.application_link
+                    'url': opp.source_url,
+                    'tags': opp.tags,
+                    'description': opp.description
                 })
             
             # Sort by match score
