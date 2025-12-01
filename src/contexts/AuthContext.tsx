@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  createUserWithEmailAndPassword, 
+import {
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log('🔄 [AUTH] Initializing auth state listener...');
-    
+
     // Listen to Firebase auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -40,13 +40,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           uid: firebaseUser.uid,
           email: firebaseUser.email
         });
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email || '',
-        });
+
+        // Fetch user profile from Firestore to check onboarding status
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const userData = userDoc.data();
+
+          // Sync localStorage with Firestore truth
+          if (userData?.onboarding_completed) {
+            localStorage.setItem('scholarstream_onboarding_complete', 'true');
+          } else {
+            localStorage.removeItem('scholarstream_onboarding_complete');
+          }
+
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || undefined,
+          });
+        } catch (error) {
+          console.error('❌ [AUTH] Failed to fetch user profile:', error);
+          // Fallback to existing localStorage state or default
+        }
       } else {
         console.log('👤 [AUTH] No authenticated user');
         setUser(null);
+        localStorage.removeItem('scholarstream_onboarding_complete');
       }
       setLoading(false);
     });
@@ -60,14 +79,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     try {
       console.log('🔐 [SIGNUP] Starting signup process...', { email });
-      
+
       // Step 1: Create Firebase Auth user with emailRedirectTo
-      const redirectUrl = `${window.location.origin}/`;
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const { uid, email: userEmail } = userCredential.user;
-      
+
       console.log('✅ [SIGNUP] Firebase Auth user created successfully', { uid, email: userEmail });
-      
+
       // Step 2: Try to create user document in Firestore (non-blocking)
       try {
         console.log('📝 [SIGNUP] Creating user document in Firestore...');
@@ -88,17 +106,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('⚠️ [SIGNUP] User authentication successful, but Firestore rules may need to be configured');
         console.warn('📚 [SIGNUP] See FIRESTORE_RULES.md for setup instructions');
       }
-      
+
       localStorage.removeItem('scholarstream_onboarding_complete');
       console.log('✅ [SIGNUP] Signup process completed successfully');
-      
+
     } catch (error: any) {
       console.error('❌ [SIGNUP] Signup failed:', {
         code: error.code,
         message: error.message,
         fullError: error
       });
-      
+
       // Parse Firebase error codes to user-friendly messages
       const errorMessages: { [key: string]: string } = {
         'auth/email-already-in-use': 'This email is already registered. Please login instead.',
@@ -108,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         'auth/api-key-not-valid': '⚠️ Firebase is not configured correctly. Please check your .env file and ensure all Firebase credentials are set.',
         'auth/configuration-not-found': '⚠️ Firebase configuration is missing. Please set up your .env file with Firebase credentials.',
       };
-      
+
       const userMessage = errorMessages[error.code] || error.message || 'Failed to create account. Please try again.';
       throw new Error(userMessage);
     }
@@ -124,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         code: error.code,
         message: error.message
       });
-      
+
       const errorMessages: { [key: string]: string } = {
         'auth/user-not-found': 'No account found with this email.',
         'auth/wrong-password': 'Incorrect password. Please try again.',
@@ -134,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         'auth/invalid-credential': 'Invalid email or password. Please try again.',
         'auth/api-key-not-valid': '⚠️ Firebase is not configured correctly. Please check your .env file.',
       };
-      
+
       const userMessage = errorMessages[error.code] || error.message || 'Failed to sign in. Please try again.';
       throw new Error(userMessage);
     }

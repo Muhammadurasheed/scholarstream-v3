@@ -54,64 +54,75 @@ const Step4Background: React.FC<Step4Props> = ({ data, onNext, onSkip }) => {
   return (
     <div className="space-y-8 animate-slide-up">
       <div className="text-center space-y-3">
-        <p className="text-sm text-primary font-semibold">Question 4 of 6</p>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-          These questions help us find opportunities designed for students like you
+        <p className="text-sm text-primary font-semibold tracking-wide uppercase">Step 4 of 6</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+          Help us find opportunities <br />
+          <span className="text-primary">designed for you</span>
         </h1>
-        <p className="text-base text-muted-foreground">
-          All questions are completely optional and kept private
+        <p className="text-lg text-muted-foreground max-w-lg mx-auto">
+          All questions are completely optional and kept private.
         </p>
       </div>
 
-      <Card className="max-w-2xl mx-auto p-6 bg-info/10 border-2 border-info/30">
-        <div className="flex gap-3 items-start">
-          <Lock className="h-5 w-5 text-info mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-semibold text-foreground">Your information is private and secure</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Many scholarships are specifically for underrepresented students, and sharing this helps us find them.
-            </p>
-          </div>
+      <Card className="max-w-2xl mx-auto p-4 bg-primary/5 border border-primary/10 shadow-sm flex gap-3 items-start">
+        <div className="p-2 bg-background rounded-full shadow-sm">
+          <Lock className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <p className="font-semibold text-foreground text-sm">Your privacy matters</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            We only use this data to match you with specific scholarships for underrepresented groups.
+          </p>
         </div>
       </Card>
 
-      <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-3">
         {backgroundOptions.map((option) => {
           const isSelected = selected.includes(option.id);
           const isPreferNot = option.id === 'prefer-not';
           const isDisabled = !isPreferNot && selected.includes('prefer-not');
-          
+
           return (
-            <Card
+            <div
               key={option.id}
-              className={`p-4 cursor-pointer transition-all ${
-                isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
-              } ${isSelected ? 'border-primary bg-primary/5' : ''}`}
+              className={`
+                relative p-4 rounded-xl border transition-all duration-200 cursor-pointer
+                ${isDisabled ? 'opacity-50 cursor-not-allowed bg-secondary/50' : 'hover:border-primary/50 hover:shadow-sm'}
+                ${isSelected
+                  ? 'border-primary bg-primary/5 shadow-md shadow-primary/5'
+                  : 'border-border bg-card'
+                }
+              `}
               onClick={() => !isDisabled && handleToggle(option.id)}
             >
               <div className="flex items-start gap-3">
                 <Checkbox
                   checked={isSelected}
                   disabled={isDisabled}
-                  className="mt-0.5"
+                  className={`mt-0.5 ${isSelected ? 'border-primary data-[state=checked]:bg-primary' : ''}`}
                 />
                 <div className="flex-1">
-                  <p className="font-semibold text-foreground">{option.label}</p>
+                  <p className={`font-medium text-sm ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                    {option.label}
+                  </p>
                   {option.tooltip && (
-                    <p className="text-sm text-foreground/60 mt-1">{option.tooltip}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{option.tooltip}</p>
                   )}
                 </div>
               </div>
-            </Card>
+            </div>
           );
         })}
       </div>
 
       <div className="max-w-md mx-auto flex gap-3">
-        <Button variant="outline" onClick={handleSkipStep} className="flex-1">
-          Skip this step
+        <Button variant="ghost" onClick={handleSkipStep} className="flex-1 h-11 text-muted-foreground hover:text-foreground">
+          Skip
         </Button>
-        <Button onClick={handleContinue} className="flex-1">
+        <Button
+          onClick={handleContinue}
+          className="flex-[2] h-11 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+        >
           Continue
         </Button>
       </div>

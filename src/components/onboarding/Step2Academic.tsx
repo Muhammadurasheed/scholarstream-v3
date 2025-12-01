@@ -4,12 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { OnboardingData } from '@/pages/Onboarding';
-import { GraduationCap, Book, Award, HelpCircle, Check, ChevronsUpDown } from 'lucide-react';
-import { searchUniversities } from '@/data/universities';
-import { cn } from '@/lib/utils';
+import { GraduationCap, Book, Award, HelpCircle } from 'lucide-react';
 
 interface Step2Props {
   data: OnboardingData;
@@ -28,8 +24,6 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
   const [year, setYear] = useState(data.year || '');
   const [school, setSchool] = useState(data.school);
   const [showSchool, setShowSchool] = useState(false);
-  const [openCombobox, setOpenCombobox] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const selectedStatus = academicStatuses.find(s => s.id === academicStatus);
 
@@ -40,8 +34,8 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
 
   const handleContinue = () => {
     if (academicStatus) {
-      onNext({ 
-        academicStatus, 
+      onNext({
+        academicStatus,
         year: selectedStatus?.hasYear ? year : undefined,
         school: school || ''
       });
@@ -51,12 +45,13 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
   return (
     <div className="space-y-8 animate-slide-up">
       <div className="text-center space-y-3">
-        <p className="text-sm text-primary font-semibold">Question 2 of 6</p>
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-          Where are you in your academic journey?
+        <p className="text-sm text-primary font-semibold tracking-wide uppercase">Step 2 of 6</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+          Where are you in your <br />
+          <span className="text-primary">academic journey?</span>
         </h1>
-        <p className="text-base text-muted-foreground">
-          This helps us find the right opportunities for you
+        <p className="text-lg text-muted-foreground max-w-lg mx-auto">
+          This helps us find opportunities relevant to your level.
         </p>
       </div>
 
@@ -64,24 +59,26 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
         {academicStatuses.map((status) => {
           const Icon = status.icon;
           const isSelected = academicStatus === status.id;
-          
+
           return (
             <Card
               key={status.id}
-              className={`p-6 cursor-pointer transition-all hover:scale-105 hover:shadow-elegant ${
-                isSelected ? 'border-primary bg-primary/5' : ''
-              }`}
+              className={`p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] ${isSelected
+                  ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                  : 'border-border hover:border-primary/50 hover:shadow-sm'
+                }`}
               onClick={() => handleStatusSelect(status.id)}
             >
-              <div className="flex flex-col items-center text-center gap-3">
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
-                  isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/15 text-primary'
-                }`}>
-                  <Icon className="h-6 w-6" />
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-colors ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                  }`}>
+                  <Icon className="h-7 w-7" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-base text-foreground">{status.label}</h3>
-                  <p className="text-sm text-muted-foreground">{status.desc}</p>
+                  <h3 className={`font-bold text-lg ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                    {status.label}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">{status.desc}</p>
                 </div>
               </div>
             </Card>
@@ -90,10 +87,10 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
       </div>
 
       {selectedStatus?.hasYear && academicStatus === 'undergraduate' && (
-        <div className="max-w-md mx-auto animate-slide-up">
-          <Label>Which year?</Label>
+        <div className="max-w-md mx-auto animate-fade-in bg-card p-6 rounded-xl border border-border/50 shadow-sm">
+          <Label className="text-base font-medium">Current Year</Label>
           <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="mt-2">
+            <SelectTrigger className="mt-2 h-11">
               <SelectValue placeholder="Select your year" />
             </SelectTrigger>
             <SelectContent>
@@ -107,24 +104,24 @@ const Step2Academic: React.FC<Step2Props> = ({ data, onNext }) => {
       )}
 
       {showSchool && (
-        <div className="max-w-md mx-auto space-y-4 animate-slide-up">
+        <div className="max-w-md mx-auto space-y-6 animate-fade-in bg-card p-6 rounded-xl border border-border/50 shadow-sm">
           <div className="space-y-2">
-            <Label htmlFor="school" className="text-foreground font-medium">Which school do you attend? (Optional)</Label>
+            <Label htmlFor="school" className="text-base font-medium">Which school do you attend? (Optional)</Label>
             <Input
               id="school"
               placeholder="e.g., University of California, Berkeley"
               value={school}
               onChange={(e) => setSchool(e.target.value)}
-              className="text-foreground bg-background"
+              className="h-11"
             />
-            <p className="text-sm text-foreground/60">
-              You can skip this if you prefer not to share
+            <p className="text-xs text-muted-foreground">
+              You can skip this if you prefer not to share right now.
             </p>
           </div>
 
           <Button
             size="lg"
-            className="w-full"
+            className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
             onClick={handleContinue}
             disabled={!academicStatus}
           >

@@ -1,7 +1,5 @@
 # ScholarStream Backend API
 
-**بسم الله الرحمن الرحيم**
-
 Production-ready FastAPI backend for ScholarStream scholarship discovery platform.
 
 ## 🏗️ Architecture
@@ -322,6 +320,4 @@ grep ERROR logs/app.log
 ## 📝 License
 
 Student Hackpad 2025 Project - ScholarStream
-Built with excellence, Alhamdulillah.
-
-**Allahu Musta'an**
+Built with excellence.

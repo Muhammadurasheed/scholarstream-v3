@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { OnboardingData } from '@/pages/Onboarding';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+import { CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiService } from '@/services/api';
 
@@ -37,7 +37,6 @@ const Step6Complete: React.FC<Step6Props> = ({ data, onComplete }) => {
       }, 1000);
 
       try {
-        // Call backend API to start scholarship discovery
         const profile = {
           name: `${data.firstName} ${data.lastName}`,
           academic_status: data.academicStatus,
@@ -52,12 +51,11 @@ const Step6Complete: React.FC<Step6Props> = ({ data, onComplete }) => {
         };
 
         await apiService.discoverScholarships(user.uid, profile);
-        
+
         clearInterval(interval);
         setLoading(false);
       } catch (err: any) {
         console.error('Failed to initiate scholarship discovery:', err);
-        // Don't block completion on API failure
         clearInterval(interval);
         setLoading(false);
         setError('Discovery service temporarily unavailable. Your scholarships will be ready shortly.');
@@ -68,106 +66,103 @@ const Step6Complete: React.FC<Step6Props> = ({ data, onComplete }) => {
   }, [user, data]);
 
   return (
-    <div className="space-y-8 animate-scale-in text-center">
-      {/* Confetti effect (CSS-based) */}
-      <div className="relative">
+    <div className="space-y-8 animate-scale-in text-center max-w-2xl mx-auto">
+      {/* Success Icon */}
+      <div className="relative py-8">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-32 w-32 rounded-full bg-success/20 animate-ping"></div>
+          <div className={`h-32 w-32 rounded-full ${loading ? 'bg-primary/10 animate-pulse' : 'bg-success/10 animate-ping'}`}></div>
         </div>
-        <CheckCircle2 className="h-24 w-24 text-success mx-auto relative z-10" />
+        {loading ? (
+          <Loader2 className="h-24 w-24 text-primary mx-auto relative z-10 animate-spin" />
+        ) : (
+          <CheckCircle2 className="h-24 w-24 text-success mx-auto relative z-10" />
+        )}
       </div>
 
       <div className="space-y-4">
-        <h1 className="text-4xl md:text-5xl font-bold text-foreground">
-          You're all set, {data.firstName}! 🎉
+        <h1 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight">
+          {loading ? 'One moment...' : `You're all set, ${data.firstName}!`}
         </h1>
         {loading ? (
-          <p className="text-lg text-muted-foreground animate-pulse font-medium">
+          <p className="text-xl text-muted-foreground animate-pulse font-medium">
             {loadingMessage}
           </p>
         ) : error ? (
-          <p className="text-lg text-warning font-semibold">
+          <p className="text-lg text-destructive font-semibold bg-destructive/10 py-2 px-4 rounded-full inline-block">
             ⚠️ {error}
           </p>
         ) : (
-          <p className="text-lg text-success font-semibold">
-            ✓ Profile complete! Your scholarships are ready.
+          <p className="text-xl text-success font-semibold flex items-center justify-center gap-2">
+            <Sparkles className="h-5 w-5" />
+            Profile complete! Your scholarships are ready.
           </p>
         )}
       </div>
 
       {!loading && (
-        <Card className="max-w-2xl mx-auto p-6 text-left animate-slide-up border-2 shadow-lg">
-          <h3 className="text-xl font-bold mb-4 text-foreground">Profile Summary</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between py-2 border-b-2 border-border">
-              <span className="text-muted-foreground font-semibold">Name:</span>
-              <span className="font-bold text-foreground">{data.firstName} {data.lastName}</span>
+        <div className="space-y-6 animate-slide-up">
+          <Card className="p-6 text-left border border-border/50 shadow-sm bg-card">
+            <h3 className="text-lg font-bold mb-4 text-foreground border-b border-border pb-2">Profile Summary</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground block mb-1">Name</span>
+                <span className="font-semibold text-foreground">{data.firstName} {data.lastName}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block mb-1">Academic Status</span>
+                <span className="font-semibold text-foreground capitalize">
+                  {data.academicStatus.replace('-', ' ')}
+                  {data.year && ` (${data.year})`}
+                </span>
+              </div>
+              {data.major && (
+                <div>
+                  <span className="text-muted-foreground block mb-1">Major</span>
+                  <span className="font-semibold text-foreground">{data.major}</span>
+                </div>
+              )}
+              {data.gpa && (
+                <div>
+                  <span className="text-muted-foreground block mb-1">GPA</span>
+                  <span className="font-semibold text-foreground">{data.gpa.toFixed(1)}</span>
+                </div>
+              )}
             </div>
-            <div className="flex justify-between py-2 border-b-2 border-border">
-              <span className="text-muted-foreground font-semibold">Academic Status:</span>
-              <span className="font-bold text-foreground capitalize">
-                {data.academicStatus.replace('-', ' ')}
-                {data.year && ` (${data.year})`}
-              </span>
+          </Card>
+
+          <Card className="p-6 bg-primary/5 border border-primary/10 text-left">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground">What Happens Next?</h3>
             </div>
-            {data.school && (
-              <div className="flex justify-between py-2 border-b-2 border-border">
-                <span className="text-muted-foreground font-semibold">School:</span>
-                <span className="font-bold text-foreground">{data.school}</span>
-              </div>
-            )}
-            {data.major && (
-              <div className="flex justify-between py-2 border-b-2 border-border">
-                <span className="text-muted-foreground font-semibold">Major:</span>
-                <span className="font-bold text-foreground">{data.major}</span>
-              </div>
-            )}
-            {data.gpa && (
-              <div className="flex justify-between py-2 border-b-2 border-border">
-                <span className="text-muted-foreground font-semibold">GPA:</span>
-                <span className="font-bold text-foreground">{data.gpa.toFixed(1)}</span>
-              </div>
-            )}
-            {data.interests.length > 0 && (
-              <div className="flex justify-between py-2 border-b-2 border-border">
-                <span className="text-muted-foreground font-semibold">Interests:</span>
-                <span className="font-bold text-foreground">{data.interests.slice(0, 3).join(', ')}</span>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start gap-3">
+                <div className="h-5 w-5 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                </div>
+                <span className="text-foreground/80">We've matched you with personalized scholarships</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="h-5 w-5 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                </div>
+                <span className="text-foreground/80">Your dashboard is ready with deadlines and priorities</span>
+              </li>
+            </ul>
+          </Card>
 
-      {!loading && (
-        <Card className="max-w-2xl mx-auto p-6 bg-primary/5 border-2 border-primary/20 animate-slide-up">
-          <Sparkles className="h-8 w-8 text-primary mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-3 text-foreground">What Happens Next?</h3>
-          <ul className="space-y-2 text-sm text-left">
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-              <span className="text-foreground">We've matched you with personalized scholarships</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-              <span className="text-foreground">Your dashboard is ready with deadlines and priorities</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-              <span className="text-foreground">AI assistant is standing by to help with applications</span>
-            </li>
-          </ul>
-        </Card>
+          <Button
+            size="lg"
+            className="w-full h-12 text-lg font-bold shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all hover:scale-[1.02]"
+            onClick={onComplete}
+            disabled={loading}
+          >
+            See My Opportunities
+          </Button>
+        </div>
       )}
-
-      <Button
-        size="lg"
-        className="animate-pulse-glow"
-        onClick={onComplete}
-        disabled={loading}
-      >
-        {loading ? 'Processing...' : 'See My Opportunities'}
-      </Button>
     </div>
   );
 };

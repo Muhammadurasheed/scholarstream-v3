@@ -51,6 +51,39 @@ const Onboarding = () => {
     };
   });
 
+  // Fetch saved draft from Firestore on mount
+  useEffect(() => {
+    const fetchDraft = async () => {
+      if (!user?.uid) return;
+
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+
+        const docRef = doc(db, 'onboarding_drafts', user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const remoteData = docSnap.data() as Partial<OnboardingData>;
+          console.log('📥 Loaded onboarding draft from Firestore');
+
+          // Merge remote data with local data, preferring remote if it exists
+          setData(prev => ({
+            ...prev,
+            ...remoteData,
+            // Ensure arrays are initialized if missing in remote
+            background: remoteData.background || prev.background || [],
+            interests: remoteData.interests || prev.interests || [],
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to load onboarding draft:', error);
+      }
+    };
+
+    fetchDraft();
+  }, [user]);
+
   // Auto-save to Firebase with debouncing
   useFirebaseAutoSave(data, 'onboarding_drafts', 1500);
 
@@ -72,10 +105,10 @@ const Onboarding = () => {
   const handleNext = (stepData: Partial<OnboardingData>) => {
     const updatedData = { ...data, ...stepData };
     setData(updatedData);
-    
+
     // Save to localStorage
     localStorage.setItem('scholarstream_onboarding_data', JSON.stringify(updatedData));
-    
+
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
     }
@@ -99,12 +132,30 @@ const Onboarding = () => {
     }
 
     // Mark onboarding as complete
-    localStorage.setItem('scholarstream_onboarding_complete', 'true');
-    localStorage.setItem('scholarstream_profile', JSON.stringify(data));
-    localStorage.removeItem('scholarstream_onboarding_data');
-    
-    // Navigate to dashboard with discovery trigger
-    navigate('/dashboard', { state: { triggerDiscovery: true, profileData: data } });
+    try {
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+
+      await updateDoc(doc(db, 'users', user.uid), {
+        onboarding_completed: true,
+        profile: data,
+        updated_at: new Date()
+      });
+
+      localStorage.setItem('scholarstream_onboarding_complete', 'true');
+      localStorage.setItem('scholarstream_profile', JSON.stringify(data));
+      localStorage.removeItem('scholarstream_onboarding_data');
+
+      // Navigate to dashboard with discovery trigger
+      navigate('/dashboard', { state: { triggerDiscovery: true, profileData: data } });
+    } catch (error) {
+      console.error('Failed to save completion status:', error);
+      toast({
+        title: 'Error saving profile',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSkip = (stepData: Partial<OnboardingData>) => {
@@ -164,7 +215,7 @@ const Onboarding = () => {
           {renderStep()}
         </div>
       </div>
-      
+
       {/* Exit Modal */}
       <ExitOnboardingModal
         open={showExitModal}

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { OnboardingData } from '@/pages/Onboarding';
+import { Lightbulb } from 'lucide-react';
 
 interface Step3Props {
   data: OnboardingData;
@@ -44,26 +44,29 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
   return (
     <div className="space-y-8 animate-slide-up">
       <div className="text-center space-y-3">
-        <p className="text-sm text-primary font-semibold">Question 3 of 6</p>
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-          Tell us about your academic performance
+        <p className="text-sm text-primary font-semibold tracking-wide uppercase">Step 3 of 6</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+          Tell us about your <br />
+          <span className="text-primary">academic performance</span>
         </h1>
-        <p className="text-base text-muted-foreground">
-          This helps us match you with merit-based opportunities
-        </p>
-        <p className="text-sm font-semibold text-warning">
-          All fields are optional - you can update these later
+        <p className="text-lg text-muted-foreground max-w-lg mx-auto">
+          This helps us match you with merit-based opportunities.
         </p>
       </div>
 
-      <div className="max-w-md mx-auto space-y-6">
+      <div className="max-w-md mx-auto space-y-6 bg-card p-8 rounded-2xl shadow-sm border border-border/50">
         {/* GPA Slider */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label className="text-foreground font-semibold">GPA (4.0 scale)</Label>
-            <span className="text-2xl font-bold text-primary">
-              {gpa.toFixed(1)} ({getLetterGrade(gpa)})
-            </span>
+            <Label className="text-base font-medium">GPA (4.0 scale)</Label>
+            <div className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full">
+              <span className="text-lg font-bold text-primary">
+                {gpa.toFixed(1)}
+              </span>
+              <span className="text-sm font-medium text-primary/80">
+                ({getLetterGrade(gpa)})
+              </span>
+            </div>
           </div>
           <Slider
             value={[gpa]}
@@ -71,23 +74,23 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
             min={0}
             max={4}
             step={0.1}
-            className="w-full"
+            className="w-full py-4"
           />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground text-center">
             Don't worry if you're not sure - you can update this later
           </p>
         </div>
 
         {/* Major */}
         <div className="space-y-2">
-          <Label className="text-foreground font-semibold">Major / Intended Major</Label>
+          <Label className="text-base font-medium">Major / Intended Major</Label>
           <Select value={major} onValueChange={setMajor}>
-            <SelectTrigger className="bg-background text-foreground border-2 font-medium">
+            <SelectTrigger className="h-11">
               <SelectValue placeholder="Select your major" />
             </SelectTrigger>
-            <SelectContent className="bg-popover text-popover-foreground border-2">
+            <SelectContent>
               {majors.map((m) => (
-                <SelectItem key={m} value={m} className="text-popover-foreground font-medium">
+                <SelectItem key={m} value={m}>
                   {m}
                 </SelectItem>
               ))}
@@ -97,14 +100,14 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
 
         {/* Graduation Year */}
         <div className="space-y-2">
-          <Label className="text-foreground font-semibold">Expected Graduation Year</Label>
+          <Label className="text-base font-medium">Expected Graduation Year</Label>
           <Select value={graduationYear} onValueChange={setGraduationYear}>
-            <SelectTrigger className="bg-background text-foreground border-2 font-medium">
+            <SelectTrigger className="h-11">
               <SelectValue placeholder="Select year" />
             </SelectTrigger>
-            <SelectContent className="bg-popover text-popover-foreground border-2">
+            <SelectContent>
               {[2025, 2026, 2027, 2028, 2029, 2030, 2031].map((year) => (
-                <SelectItem key={year} value={year.toString()} className="text-popover-foreground font-medium">
+                <SelectItem key={year} value={year.toString()}>
                   {year}
                 </SelectItem>
               ))}
@@ -113,18 +116,22 @@ const Step3Profile: React.FC<Step3Props> = ({ data, onNext, onSkip }) => {
         </div>
 
         {gpa >= 3.5 && (
-          <div className="p-4 bg-success/10 border-2 border-success/30 rounded-lg animate-scale-in">
-            <p className="text-sm text-foreground font-semibold">
-              💡 Students with {gpa.toFixed(1)} GPA typically qualify for merit-based scholarships!
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex gap-3 items-start animate-fade-in">
+            <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-foreground/80">
+              <span className="font-semibold text-primary">Great job!</span> Students with {gpa.toFixed(1)} GPA typically qualify for exclusive merit-based scholarships.
             </p>
           </div>
         )}
 
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={handleSkip} className="flex-1">
-            Skip this step
+        <div className="flex gap-3 pt-2">
+          <Button variant="ghost" onClick={handleSkip} className="flex-1 h-11 text-muted-foreground hover:text-foreground">
+            Skip
           </Button>
-          <Button onClick={handleContinue} className="flex-1">
+          <Button
+            onClick={handleContinue}
+            className="flex-[2] h-11 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+          >
             Continue
           </Button>
         </div>

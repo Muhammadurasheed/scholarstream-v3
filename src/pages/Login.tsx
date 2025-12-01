@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
@@ -17,7 +17,7 @@ const Login = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -30,15 +30,18 @@ const Login = () => {
   });
 
   // Redirect if already logged in
-  if (user) {
-    const destination = isOnboardingComplete() ? '/dashboard' : '/onboarding';
-    navigate(destination, { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      const destination = isOnboardingComplete() ? '/dashboard' : '/onboarding';
+      navigate(destination, { replace: true });
+    }
+  }, [user, navigate, isOnboardingComplete]);
+
+  if (user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!formData.email) {
       setErrors({ ...errors, email: 'Email is required' });
@@ -56,7 +59,7 @@ const Login = () => {
         title: 'Welcome back!',
         description: 'Successfully logged in',
       });
-      
+
       // Check if onboarding is complete
       const destination = isOnboardingComplete() ? '/dashboard' : '/onboarding';
       navigate(destination);
@@ -136,8 +139,8 @@ const Login = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link 
-                    to="/forgot-password" 
+                  <Link
+                    to="/forgot-password"
                     className="text-sm text-primary hover:underline"
                   >
                     Forgot password?
@@ -170,7 +173,7 @@ const Login = () => {
                 <Checkbox
                   id="remember"
                   checked={formData.rememberMe}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setFormData({ ...formData, rememberMe: checked as boolean })
                   }
                 />
@@ -182,7 +185,7 @@ const Login = () => {
               <Button type="submit" className="w-full" size="lg" disabled={loading}>
                 {loading ? 'Logging in...' : 'Log In'}
               </Button>
-              
+
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />

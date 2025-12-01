@@ -292,5 +292,3 @@ For questions or support, open an issue on GitHub.
 ---
 
 **Built with ❤️ for students seeking financial opportunities**
-
-*Bismillah ir-Rahman ir-Rahim* 🤲
