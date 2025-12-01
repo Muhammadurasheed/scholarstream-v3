@@ -8,16 +8,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFirebaseAutoSave } from '@/hooks/useFirebaseAutoSave';
 import { ExitOnboardingModal } from '@/components/modals/ExitOnboardingModal';
 import Step1Name from '@/components/onboarding/Step1Name';
-import Step2Academic from '@/components/onboarding/Step2Academic';
-import Step3Profile from '@/components/onboarding/Step3Profile';
-import Step4Background from '@/components/onboarding/Step4Background';
+import Step2Motivation from '@/components/onboarding/Step2Motivation';
+import Step3Academic from '@/components/onboarding/Step3Academic';
+import Step4Profile from '@/components/onboarding/Step4Profile';
 import Step5Interests from '@/components/onboarding/Step5Interests';
-import Step6Complete from '@/components/onboarding/Step6Complete';
+import Step6Background from '@/components/onboarding/Step6Background';
+import Step7Availability from '@/components/onboarding/Step7Availability';
+import Step8Location from '@/components/onboarding/Step8Location';
+import Step9Complete from '@/components/onboarding/Step9Complete';
 import { sanitizeData } from '@/lib/utils';
 
 export interface OnboardingData {
   firstName: string;
   lastName: string;
+  motivation: string[];
   academicStatus: string;
   year?: string;
   school: string;
@@ -26,10 +30,16 @@ export interface OnboardingData {
   graduationYear: string;
   background: string[];
   financialNeed?: number;
+  urgentDeadline?: string;
   interests: string[];
+  timeCommitment?: string;
+  availability?: string;
+  country: string;
+  state?: string;
+  city?: string;
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 9;
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -43,12 +53,14 @@ const Onboarding = () => {
     return saved ? JSON.parse(saved) : {
       firstName: '',
       lastName: '',
+      motivation: [],
       academicStatus: '',
       school: '',
       major: '',
       graduationYear: '',
       background: [],
       interests: [],
+      country: '',
     };
   });
 
@@ -177,15 +189,21 @@ const Onboarding = () => {
       case 1:
         return <Step1Name data={data} onNext={handleNext} />;
       case 2:
-        return <Step2Academic data={data} onNext={handleNext} />;
+        return <Step2Motivation data={data} onNext={handleNext} />;
       case 3:
-        return <Step3Profile data={data} onNext={handleNext} onSkip={handleSkip} />;
+        return <Step3Academic data={data} onNext={handleNext} />;
       case 4:
-        return <Step4Background data={data} onNext={handleNext} onSkip={handleSkip} />;
+        return <Step4Profile data={data} onNext={handleNext} onSkip={handleSkip} />;
       case 5:
         return <Step5Interests data={data} onNext={handleNext} />;
       case 6:
-        return <Step6Complete data={data} onComplete={handleComplete} />;
+        return <Step6Background data={data} onNext={handleNext} onSkip={handleSkip} />;
+      case 7:
+        return <Step7Availability data={data} onNext={handleNext} />;
+      case 8:
+        return <Step8Location data={data} onNext={handleNext} />;
+      case 9:
+        return <Step9Complete data={data} onComplete={handleComplete} />;
       default:
         return null;
     }
