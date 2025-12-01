@@ -52,7 +52,12 @@ export const FloatingChatAssistant = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/chat`, {
+      // Use the same API_BASE_URL as apiService for consistency
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://scholarstream-backend.onrender.com';
+      
+      console.log('🤖 Sending chat message to:', `${API_BASE_URL}/api/chat`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -64,9 +69,14 @@ export const FloatingChatAssistant = () => {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to get response');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Chat API error:', response.status, errorText);
+        throw new Error(`API returned ${response.status}`);
+      }
 
       const data = await response.json();
+      console.log('✅ Chat response received:', data);
       
       const assistantMessage: Message = {
         role: 'assistant',
@@ -76,8 +86,16 @@ export const FloatingChatAssistant = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Chat error:', error);
-      toast.error('Failed to get response. Please try again.');
+      console.error('❌ Chat error:', error);
+      
+      // Provide helpful fallback response
+      const fallbackMessage: Message = {
+        role: 'assistant',
+        content: "I'm having trouble connecting right now. Here are some things I can help you with:\n\n• Find urgent hackathons and bounties\n• Search scholarships by major or GPA\n• Discover competitions you can enter\n• Get application tips and strategies\n\nPlease try your question again, or refresh the page if the issue persists.",
+      };
+      setMessages(prev => [...prev, fallbackMessage]);
+      
+      toast.error('Connection issue. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -110,8 +128,8 @@ export const FloatingChatAssistant = () => {
   return (
     <Card className={`fixed ${
       isFullscreen 
-        ? 'inset-4 w-auto h-auto' 
-        : 'bottom-6 right-6 w-[400px] h-[600px]'
+        ? 'inset-4 w-auto h-auto max-w-full max-h-full' 
+        : 'bottom-6 right-6 w-[400px] md:w-[450px] h-[600px] max-h-[80vh]'
     } flex flex-col shadow-2xl border-primary/20 animate-in slide-in-from-bottom-4 z-50 transition-all duration-300`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/10 to-primary/5">
@@ -254,8 +272,9 @@ export const FloatingChatAssistant = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
-            className="min-h-[44px] max-h-[120px] resize-none"
+            className="min-h-[44px] max-h-[200px] resize-none whitespace-pre-wrap break-words"
             disabled={isLoading}
+            rows={2}
           />
           <Button
             size="icon"
