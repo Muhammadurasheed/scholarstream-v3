@@ -18,6 +18,7 @@ import Dashboard from "./pages/Dashboard";
 import OpportunityDetail from "./pages/OpportunityDetail";
 import Apply from "./pages/Apply";
 import Applications from "./pages/Applications";
+import ApplicationTracker from "./pages/ApplicationTracker";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -81,6 +82,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Applications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/application-tracker"
+                  element={
+                    <ProtectedRoute>
+                      <ApplicationTracker />
                     </ProtectedRoute>
                   }
                 />
