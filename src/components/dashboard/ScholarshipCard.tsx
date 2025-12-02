@@ -45,7 +45,7 @@ export const ScholarshipCard = ({
   return (
     <Card
       className={cn(
-        'group relative overflow-hidden p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg h-full flex flex-col',
+        'group relative overflow-hidden p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg flex flex-col',
         getPriorityColor(scholarship.priority_level)
       )}
     >
@@ -73,7 +73,7 @@ export const ScholarshipCard = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 space-y-3 min-h-0">
+        <div className="flex-1 space-y-3">
           {/* Header with match score */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
