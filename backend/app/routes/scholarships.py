@@ -34,12 +34,22 @@ async def discover_scholarships(
     try:
         logger.info("Discovery request received", user_id=request.user_id)
         
-        result = await matching_service.discover_and_match(
+        # Start discovery job (returns immediately)
+        response = await matching_service.start_discovery_job(
             request.user_id,
             request.profile
         )
         
-        return result
+        # If processing, schedule background task
+        if response.status == "processing" and response.job_id:
+            background_tasks.add_task(
+                matching_service.run_background_discovery,
+                response.job_id,
+                request.user_id,
+                request.profile
+            )
+        
+        return response
         
     except Exception as e:
         logger.error("Discovery failed", error=str(e), user_id=request.user_id)

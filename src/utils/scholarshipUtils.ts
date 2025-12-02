@@ -12,12 +12,15 @@ export const formatCurrency = (amount: number): string => {
 };
 
 export const getDeadlineInfo = (deadline: string) => {
-  const deadlineDate = new Date(deadline);
+  let deadlineDate = new Date(deadline);
+  if (isNaN(deadlineDate.getTime())) {
+    deadlineDate = new Date(); // Fallback to today to avoid crash
+  }
   const daysUntil = differenceInDays(deadlineDate, new Date());
-  
+
   let urgency: 'urgent' | 'soon' | 'normal' = 'normal';
   let color: string = 'text-slate-400';
-  
+
   if (daysUntil < 7) {
     urgency = 'urgent';
     color = 'text-danger';
@@ -25,14 +28,14 @@ export const getDeadlineInfo = (deadline: string) => {
     urgency = 'soon';
     color = 'text-warning';
   }
-  
+
   const formattedDate = format(deadlineDate, 'MMMM d, yyyy');
-  const countdown = daysUntil > 0 
+  const countdown = daysUntil > 0
     ? `Due in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`
-    : daysUntil === 0 
-    ? 'Due today!'
-    : 'Deadline passed';
-  
+    : daysUntil === 0
+      ? 'Due today!'
+      : 'Deadline passed';
+
   return { urgency, color, formattedDate, countdown, daysUntil };
 };
 
@@ -71,7 +74,14 @@ export const getPriorityColor = (priority: PriorityLevel): string => {
 };
 
 export const calculateDaysUntilDeadline = (deadline: string): number => {
-  return differenceInDays(new Date(deadline), new Date());
+  try {
+    if (!deadline) return 365; // Default to far future if missing
+    const date = new Date(deadline);
+    if (isNaN(date.getTime())) return 365; // Default to far future if invalid
+    return differenceInDays(date, new Date());
+  } catch (e) {
+    return 365;
+  }
 };
 
 export const isNewScholarship = (discoveredAt: string): boolean => {
@@ -93,14 +103,16 @@ export const sortScholarships = (
   sortBy: string
 ): Scholarship[] => {
   const sorted = [...scholarships];
-  
+
   switch (sortBy) {
     case 'best_match':
       return sorted.sort((a, b) => b.match_score - a.match_score);
     case 'deadline':
-      return sorted.sort((a, b) => 
-        new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-      );
+      return sorted.sort((a, b) => {
+        const dateA = new Date(a.deadline).getTime();
+        const dateB = new Date(b.deadline).getTime();
+        return (isNaN(dateA) ? Infinity : dateA) - (isNaN(dateB) ? Infinity : dateB);
+      });
     case 'amount':
     case 'amount_high':
       return sorted.sort((a, b) => b.amount - a.amount);
@@ -108,15 +120,17 @@ export const sortScholarships = (
       return sorted.sort((a, b) => a.amount - b.amount);
     case 'time':
       return sorted.sort((a, b) => {
-        const timeA = parseInt(a.estimated_time);
-        const timeB = parseInt(b.estimated_time);
+        const timeA = parseInt(a.estimated_time) || 0;
+        const timeB = parseInt(b.estimated_time) || 0;
         return timeA - timeB;
       });
     case 'recent':
     case 'newest':
-      return sorted.sort((a, b) => 
-        new Date(b.discovered_at).getTime() - new Date(a.discovered_at).getTime()
-      );
+      return sorted.sort((a, b) => {
+        const dateA = new Date(a.discovered_at).getTime();
+        const dateB = new Date(b.discovered_at).getTime();
+        return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
+      });
     default:
       return sorted;
   }
@@ -128,7 +142,7 @@ export const filterScholarshipsByTab = (
 ): Scholarship[] => {
   switch (tab) {
     case 'high_priority':
-      return scholarships.filter(s => 
+      return scholarships.filter(s =>
         s.match_score > 70 || calculateDaysUntilDeadline(s.deadline) < 30
       );
     case 'closing_soon':

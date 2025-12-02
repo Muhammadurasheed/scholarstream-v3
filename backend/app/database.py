@@ -117,12 +117,27 @@ class FirebaseDB:
             
             matched_ids = doc.to_dict().get('scholarship_ids', [])
             
-            # Fetch scholarship details
+            if not matched_ids:
+                return []
+            
+            # Create references for batch fetch
+            refs = [self.db.collection('scholarships').document(sid) for sid in matched_ids]
+            
+            # Fetch all documents in parallel (optimized batch read)
+            docs = self.db.get_all(refs)
+            
             scholarships = []
-            for scholarship_id in matched_ids:
-                scholarship = await self.get_scholarship(scholarship_id)
-                if scholarship:
-                    scholarships.append(scholarship)
+            for doc in docs:
+                if doc.exists:
+                    try:
+                        data = doc.to_dict()
+                        # Ensure ID is present
+                        if 'id' not in data:
+                            data['id'] = doc.id
+                        scholarships.append(Scholarship(**data))
+                    except Exception as parse_error:
+                        logger.warning("Failed to parse scholarship", doc_id=doc.id, error=str(parse_error))
+                        continue
             
             logger.info("Fetched user matched scholarships", user_id=user_id, count=len(scholarships))
             return scholarships

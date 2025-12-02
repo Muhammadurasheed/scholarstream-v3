@@ -1,11 +1,8 @@
-import { AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Scholarship } from '@/types/scholarship';
-import { formatCurrency, getDeadlineInfo } from '@/utils/scholarshipUtils';
+import { AlertTriangle, Clock, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useRef } from 'react';
+import { calculateDaysUntilDeadline } from '@/utils/scholarshipUtils';
 
 interface PriorityAlertsSectionProps {
   urgentScholarships: Scholarship[];
@@ -13,94 +10,71 @@ interface PriorityAlertsSectionProps {
 
 export const PriorityAlertsSection = ({ urgentScholarships }: PriorityAlertsSectionProps) => {
   const navigate = useNavigate();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   if (urgentScholarships.length === 0) return null;
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (!scrollContainerRef.current) return;
-    const scrollAmount = 350;
-    const newScrollPosition =
-      scrollContainerRef.current.scrollLeft + (direction === 'right' ? scrollAmount : -scrollAmount);
-    scrollContainerRef.current.scrollTo({ left: newScrollPosition, behavior: 'smooth' });
-  };
-
   return (
-    <div className="mb-8 rounded-xl bg-gradient-to-r from-danger/20 via-danger/10 to-background border-2 border-danger/30 p-6 animate-pulse">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-full bg-danger/20 p-2">
-            <AlertTriangle className="h-6 w-6 text-danger" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">
-              ⚠️ {urgentScholarships.length} Urgent Deadline{urgentScholarships.length !== 1 && 's'} This Week!
-            </h2>
-            <p className="text-sm text-muted-foreground">Don't miss out on these opportunities</p>
-          </div>
+    <section className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30">
+          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
         </div>
-        <Button variant="outline" size="sm" className="hidden sm:flex">
-          View All Urgent
-        </Button>
+        <h2 className="text-xl font-bold text-foreground">Priority Alerts</h2>
+        <span className="px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 rounded-full">
+          {urgentScholarships.length} Action Required
+        </span>
       </div>
 
-      <div className="relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur hidden lg:flex"
-          onClick={() => scroll('left')}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {urgentScholarships.slice(0, 3).map((scholarship) => {
+          const daysLeft = calculateDaysUntilDeadline(scholarship.deadline);
 
-        <div
-          ref={scrollContainerRef}
-          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {urgentScholarships.map((scholarship) => {
-            const deadlineInfo = getDeadlineInfo(scholarship.deadline);
-            return (
-              <Card
-                key={scholarship.id}
-                className="flex-shrink-0 w-[320px] p-4 snap-start cursor-pointer hover:shadow-lg transition-shadow border-danger/30"
-                onClick={() => navigate(`/opportunity/${scholarship.id}`)}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-foreground line-clamp-2 flex-1">
-                      {scholarship.name}
-                    </h3>
-                    <Badge className="bg-danger/20 text-danger shrink-0">{scholarship.match_score}%</Badge>
-                  </div>
+          return (
+            <div
+              key={scholarship.id}
+              className="group relative overflow-hidden rounded-xl border border-red-200 bg-red-50/30 p-5 transition-all hover:border-red-300 hover:shadow-md dark:border-red-900/30 dark:bg-red-950/10"
+            >
+              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Clock className="w-24 h-24 text-red-500" />
+              </div>
 
-                  <div className="text-2xl font-bold text-success">{formatCurrency(scholarship.amount)}</div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium text-danger">{deadlineInfo.countdown}</div>
-                      <div className="text-xs text-muted-foreground">{deadlineInfo.formattedDate}</div>
-                    </div>
-                    <Button size="sm" variant="default" className="bg-danger hover:bg-danger/90">
-                      Apply Now
-                    </Button>
-                  </div>
+              <div className="relative z-10">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/80 dark:bg-black/40 text-xs font-medium text-red-600 dark:text-red-400 backdrop-blur-sm border border-red-100 dark:border-red-900/50">
+                    <Clock className="w-3 h-3" />
+                    Expires in {daysLeft} days
+                  </span>
+                  <span className="font-bold text-green-600 dark:text-green-400">
+                    {scholarship.amount_display}
+                  </span>
                 </div>
-              </Card>
-            );
-          })}
-        </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur hidden lg:flex"
-          onClick={() => scroll('right')}
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
+                <h3 className="font-bold text-lg mb-1 line-clamp-1 group-hover:text-primary transition-colors">
+                  {scholarship.name}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-1">
+                  {scholarship.organization}
+                </p>
+
+                <div className="flex items-center justify-between mt-auto">
+                  <div className="text-xs text-muted-foreground">
+                    High Match ({scholarship.match_score}%)
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 p-0 h-auto font-semibold group/btn"
+                    onClick={() => navigate(`/opportunity/${scholarship.id}`)}
+                  >
+                    View Details
+                    <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover/btn:translate-x-1" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
-    </div>
+    </section>
   );
 };
