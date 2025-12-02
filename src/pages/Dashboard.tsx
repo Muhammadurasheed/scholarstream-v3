@@ -10,6 +10,8 @@ import { PriorityAlertsSection } from '@/components/dashboard/PriorityAlertsSect
 import { OpportunityGrid } from '@/components/dashboard/OpportunityGrid';
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav';
 import { FloatingChatAssistant } from '@/components/dashboard/FloatingChatAssistant';
+import { ViewToggle } from '@/components/dashboard/ViewToggle';
+import { Pagination } from '@/components/dashboard/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -24,14 +26,19 @@ const Dashboard = () => {
   const location = useLocation();
   const {
     scholarships,
+    paginatedScholarships,
     stats,
     loading,
     discoveryStatus,
     discoveryProgress,
     triggerDiscovery,
+    currentPage,
+    totalPages,
+    goToPage,
   } = useScholarships();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [view, setView] = useState<'grid' | 'list'>('grid');
 
   // Trigger discovery if coming from onboarding
   useEffect(() => {
@@ -232,14 +239,17 @@ const Dashboard = () => {
             <section>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <h2 className="text-2xl font-bold">Explore Opportunities</h2>
-                <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search scholarships..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
+                <div className="flex items-center gap-3">
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search scholarships..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <ViewToggle view={view} onViewChange={setView} />
                 </div>
               </div>
 
@@ -253,19 +263,20 @@ const Dashboard = () => {
                 </TabsList>
 
                 <TabsContent value="all" className="mt-0">
-                  <OpportunityGrid opportunities={scholarships} />
+                  <OpportunityGrid opportunities={paginatedScholarships} view={view} />
+                  <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} />
                 </TabsContent>
                 <TabsContent value="scholarships" className="mt-0">
-                  <OpportunityGrid opportunities={groupedOpportunities.byType.scholarships} />
+                  <OpportunityGrid opportunities={groupedOpportunities.byType.scholarships} view={view} />
                 </TabsContent>
                 <TabsContent value="hackathons" className="mt-0">
-                  <OpportunityGrid opportunities={groupedOpportunities.byType.hackathons} />
+                  <OpportunityGrid opportunities={groupedOpportunities.byType.hackathons} view={view} />
                 </TabsContent>
                 <TabsContent value="bounties" className="mt-0">
-                  <OpportunityGrid opportunities={groupedOpportunities.byType.bounties} />
+                  <OpportunityGrid opportunities={groupedOpportunities.byType.bounties} view={view} />
                 </TabsContent>
                 <TabsContent value="competitions" className="mt-0">
-                  <OpportunityGrid opportunities={groupedOpportunities.byType.competitions} />
+                  <OpportunityGrid opportunities={groupedOpportunities.byType.competitions} view={view} />
                 </TabsContent>
               </Tabs>
             </section>

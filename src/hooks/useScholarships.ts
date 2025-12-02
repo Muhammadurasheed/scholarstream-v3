@@ -13,6 +13,10 @@ export const useScholarships = () => {
   // Local state for discovery UI (since it's transient)
   const [discoveryStatus, setDiscoveryStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
   const [discoveryProgress, setDiscoveryProgress] = useState(0);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12); // Show 12 items per page
 
   // 1. Main Query: Fetch Matched Scholarships
   const {
@@ -186,8 +190,21 @@ export const useScholarships = () => {
     }
   };
 
+  // Pagination helpers
+  const totalPages = Math.ceil(scholarships.length / itemsPerPage);
+  const paginatedScholarships = scholarships.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return {
     scholarships,
+    paginatedScholarships,
     stats,
     loading,
     discoveryStatus,
@@ -197,5 +214,10 @@ export const useScholarships = () => {
     startApplication,
     refreshScholarships,
     triggerDiscovery,
+    // Pagination
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    goToPage,
   };
 };
